@@ -1,0 +1,10 @@
+.vs/
+.vscode/
+build/
+dist/
+bin/
+obj/
+*.user
+package-lock.json
+node_modules/
+*.log

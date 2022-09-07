@@ -1,0 +1,10 @@
+{
+  "name": "planck-example",
+  "description": "Planck UI library for client",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "tsc --build --clean"
+  }
+}

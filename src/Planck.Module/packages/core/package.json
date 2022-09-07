@@ -1,0 +1,9 @@
+{
+  "name": "@planck/core",
+  "description": "Planck core library to be imported by the C# library",
+  "version": "0.0.1",
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "tsc --build --clean"
+  }
+}
