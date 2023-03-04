@@ -15,13 +15,21 @@
     <LangVersion>preview</LangVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="build\**" />
     <Compile Remove="Options\**" />
+    <EmbeddedResource Remove="build\**" />
     <EmbeddedResource Remove="Options\**" />
+    <None Remove="build\**" />
     <None Remove="Options\**" />
+    <Page Remove="build\**" />
     <Page Remove="Options\**" />
   </ItemGroup>
   <ItemGroup>
+    <None Remove="Planck.targets" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="7.0.3" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />

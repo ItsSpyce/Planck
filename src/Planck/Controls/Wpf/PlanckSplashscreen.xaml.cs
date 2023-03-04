@@ -1,7 +1,11 @@
 ﻿using Microsoft.Extensions.Options;
 using Planck.Configuration;
+using Planck.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Reflection;
+using System.Resources;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -31,15 +35,40 @@ namespace Planck.Controls.Wpf
       set => SetValue(SourceProperty, value);
     }
 
-    public PlanckSplashscreen(IOptions<PlanckConfiguration> configuration)
+    public PlanckSplashscreen(IOptions<PlanckConfiguration> configuration, Assembly assembly)
     {
       // TODO: add height and width restrictions, don't want to take up the entire screen
       InitializeComponent();
       Source = configuration.Value.Splashscreen;
-      Content = new Image
+      var bitmap = GetBitmapFromResources(assembly, Source);
+      if (bitmap != null)
       {
-        Source = new BitmapImage(new Uri(Source)),
-      };
+        Content = new Image
+        {
+          Source = bitmap,
+        };
+      }
+    }
+
+    private static BitmapImage? GetBitmapFromResources(Assembly assembly, string? path)
+    {
+      if (string.IsNullOrEmpty(path))
+      {
+        return null;
+      }
+      var resourceName = UrlUtilities.GetResourceName(path);
+      var resourceStream = assembly.GetManifestResourceStream(resourceName);
+      if (resourceStream != null)
+      {
+        var bitmap = new BitmapImage();
+        bitmap.BeginInit();
+        bitmap.StreamSource = assembly.GetManifestResourceStream(resourceName);
+        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+        bitmap.EndInit();
+        bitmap.Freeze();
+        return bitmap;
+      }
+      return null;
     }
   }
 }

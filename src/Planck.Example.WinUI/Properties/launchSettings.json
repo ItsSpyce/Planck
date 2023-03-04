@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Planck.Example.WinUI (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Planck.Example.WinUI (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

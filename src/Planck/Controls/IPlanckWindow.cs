@@ -13,6 +13,9 @@ namespace Planck.Controls
     double Width { get; set; }
     double Height { get; set; }
 
+    internal bool HasCompletedBootstrap { get; set; }
+    internal event EventHandler BootstrapCompleted;
+
     void Show();
     void Hide();
     void Close();

@@ -1,115 +1,143 @@
-﻿using Microsoft.Web.WebView2.Core;
+﻿using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
+using Microsoft.Web.WebView2.Core;
+using Planck.Commands.Internal;
+using Planck.Configuration;
 using Planck.Controls;
 using Planck.Controls.Wpf;
+using Planck.Extensions;
 using Planck.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Net;
+using System.Numerics;
+using System.Reflection;
 using System.Text;
 
 namespace Planck.Resources
 {
   public interface IResourceService
   {
+    public const string AppUrl = "http://appassets.resx/";
+
     Stream? GetResource(string name);
     void ConnectToPlanck(IPlanckWindow planck, string? root);
   }
 
-  internal class PackagedResourceService : IResourceService, IDisposable
+  internal abstract class InternalResourceService : IResourceService
   {
-    private const string _planckPackageExtension = ".ppx";
+    protected readonly PlanckConfiguration _configuration;
 
-    private ZipArchive? _packageArchive;
-    private bool _disposed;
-
-    public void ConnectToPlanck(IPlanckWindow planck, string? root)
+    protected InternalResourceService(IOptions<PlanckConfiguration> options)
     {
-      if (string.IsNullOrEmpty(root))
-      {
-        throw new ArgumentNullException(nameof(root));
-      }
+      _configuration = options.Value;
+    }
+
+    protected void ConnectWithLocalUri(IPlanckWindow planck, string? root)
+    {
       if (planck.CoreWebView2 == null)
       {
         throw new ArgumentNullException("CoreWebView2 is not initialized", nameof(planck.CoreWebView2));
       }
-      var fileInfo = new FileInfo(root);
-      if ((fileInfo.Attributes & FileAttributes.Directory) != 0)
+
+      planck.CoreWebView2.NavigationStarting += (_, args) =>
       {
-        //planck.CoreWebView2.SetVirtualHostNameToFolderMapping(
-        //  Constants.PlanckUrl,
-        //  root,
-        //  CoreWebView2HostResourceAccessKind.DenyCors);
-      }
-      else
-      {
-        if (fileInfo.Extension != _planckPackageExtension)
+        if (args.Uri == Constants.StartPageContentAsBase64)
         {
-          throw new ArgumentException("Invalid package file", nameof(root));
+          // reload the entry because for some reason this gets called here on refresh
+          void AfterRequestCompleted(object sender, CoreWebView2NavigationCompletedEventArgs args)
+          {
+            planck.CoreWebView2.PostWebMessage(new NavigateCommand { To = _configuration.Entry });
+            planck.CoreWebView2.NavigationCompleted -= AfterRequestCompleted;
+          }
+          planck.CoreWebView2.NavigationCompleted += AfterRequestCompleted;
         }
-        _packageArchive = ZipFile.OpenRead(root);
+      };
 
-        //planck.CoreWebView2.WebResourceRequested += (_, args) =>
-        //{
-        //  if (_disposed)
-        //  {
-        //    return;
-        //  }
-        //  if (!UrlUtilities.IsPlanckUrl(args.Request.Uri))
-        //  {
-        //    return;
-        //  }
-        //  var resourceName = UrlUtilities.RemovePlanckDomain(args.Request.Uri);
-        //  var packagedResource = GetResource(resourceName);
-        //  if (packagedResource == null)
-        //  {
-        //    return;
-        //  }
-        //  args.Response.Content = packagedResource;
-        //};
-      }
+      planck.CoreWebView2.WebResourceRequested += (_, args) =>
+      {
+        if (args.Request.Uri.StartsWith(IResourceService.AppUrl, StringComparison.OrdinalIgnoreCase))
+        {
+          var parsedUri = new Uri(args.Request.Uri);
+          var uriWithoutQuery = parsedUri.AbsolutePath[1..].Replace("__", "\\");
+          if (string.IsNullOrEmpty(uriWithoutQuery))
+          {
+            uriWithoutQuery = _configuration.Entry;
+          }
+          var resx = GetResource(uriWithoutQuery);
+          if (resx != null)
+          {
+            var response = planck.CoreWebView2.CreateResourceResponse(resx);
+            args.Response = response;
+          }
+          else
+          {
+            // TODO: should we allow applications to further handle resource requests?
+            args.Response.StatusCode = 404;
+          }
+        }
+      };
     }
 
-    public void Dispose()
+    public abstract void ConnectToPlanck(IPlanckWindow planck, string? root);
+    public abstract Stream? GetResource(string name);
+  }
+
+  internal class LocalResourceService : InternalResourceService
+  {
+
+    public LocalResourceService(IOptions<PlanckConfiguration> options) : base(options)
     {
-      if (_disposed)
-      {
-        return;
-      }
-      _disposed = true;
-      _packageArchive?.Dispose();
     }
 
-    public Stream? GetResource(string name)
+    public override void ConnectToPlanck(IPlanckWindow planck, string? root)
     {
-      var entry = _packageArchive?.GetEntry(name);
-      if (entry == null)
+      ConnectWithLocalUri(planck, root);
+      planck.CoreWebView2.NavigationStarting += (_, args) =>
       {
-        return null;
-      }
-      return entry.Open();
+        if (args.Uri.StartsWith(IResourceService.AppUrl))
+        {
+          planck.CoreWebView2.Navigate(args.Uri.Replace(IResourceService.AppUrl, _configuration.DevUrl));
+        }
+      };
+    }
+
+    public override Stream? GetResource(string name)
+    {
+      return File.OpenRead(Path.Join(_configuration.ClientDirectory, name));
     }
   }
 
-  /// <summary>
-  ///   Informs Planck that resources will be embedded inside of the final application
-  /// </summary>
-  /// <remarks>
-  ///   Process goes:
-  ///   1. app calls "planck-build [DIRECTORY] --embedded"
-  ///   2. planck creates a clone of the csproj that adds two lines:
-  ///     - 
-  /// </remarks>
-  internal class EmbeddedResourceService : IResourceService
+  internal class EmbeddedResourceService : InternalResourceService
   {
-    public void ConnectToPlanck(IPlanckWindow planck, string? root)
+    readonly Assembly _assembly;
+
+    public EmbeddedResourceService(Assembly assembly, IOptions<PlanckConfiguration> config) : base(config)
     {
-      throw new NotImplementedException();
+      _assembly = assembly;
     }
 
-    public Stream? GetResource(string name)
+    public override void ConnectToPlanck(IPlanckWindow planck, string? root)
     {
-      throw new NotImplementedException();
+      ConnectWithLocalUri(planck, root);
+
+      planck.CoreWebView2.NavigationCompleted += (_, args) =>
+      {
+        // Debugger.Break();
+        if (!planck.HasCompletedBootstrap)
+        {
+          planck.HasCompletedBootstrap = true;
+        }
+      };
+    }
+
+    public override Stream? GetResource(string name)
+    {
+      var resourceName = UrlUtilities.GetResourceName(name);
+      return _assembly.GetManifestResourceStream(resourceName);
     }
   }
 }

@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Planck.Build": {
+      "commandName": "Project",
+      "commandLineArgs": "F:\\dev\\Planck\\src\\Planck.Demo.SelfHosted\\Client\\dist\\ Assembly",
+      "workingDirectory": "F:\\dev\\Planck\\src\\Planck.Demo.SelfHosted"
+    }
+  }
+}

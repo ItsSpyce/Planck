@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net6.0-windows</TargetFramework>
@@ -17,10 +16,7 @@
 
   <ItemGroup>
     <None Remove="package.json" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="package.json" />
+    <None Remove="splashscreen.jpg" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,9 +27,11 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="images\splashscreen.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
-
+  <ItemGroup>
+    <EmbeddedResource Include="$(ProjectDir)Client\dist\**\*.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="splashscreen.jpg" />
+  </ItemGroup>
 </Project>

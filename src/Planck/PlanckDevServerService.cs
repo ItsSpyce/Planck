@@ -10,18 +10,19 @@ using System.Text;
 
 namespace Planck
 {
-  internal class PlanckHostService : IHostedService
+  internal class PlanckDevServerService : IHostedService
   {
     private readonly PlanckConfiguration _config;
     private Process? _nodeProcess;
 
-    public PlanckHostService(IOptions<PlanckConfiguration> configuration)
+    public PlanckDevServerService(IOptions<PlanckConfiguration> configuration)
     {
       _config = configuration.Value;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+#if !DEBUG
       if (!string.IsNullOrEmpty(_config.DevCommand))
       {
         if (ProcessUtilities.TryRunCommand(_config.DevCommand, _config.ClientDirectory ?? AppDomain.CurrentDomain.BaseDirectory, out var process))
@@ -39,6 +40,7 @@ namespace Planck
           };
         }
       }
+#endif
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)

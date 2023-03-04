@@ -1,4 +1,4 @@
-﻿using Planck.Commands;
+﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace Commands
+namespace Planck.Commands
 {
   public interface ICommandHandlerService
   {
@@ -16,11 +16,13 @@ namespace Commands
   internal class CommandHandlerService : ICommandHandlerService
   {
     private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<CommandHandlerService> _logger;
     private readonly Dictionary<string, List<MethodInfo>> _commandMap = new();
 
-    public CommandHandlerService(IServiceProvider serviceProvider)
+    public CommandHandlerService(IServiceProvider serviceProvider, ILogger<CommandHandlerService> logger)
     {
       _serviceProvider = serviceProvider;
+      _logger = logger;
     }
 
     public void BuildFromType<T>()
@@ -66,6 +68,7 @@ namespace Commands
       {
         foreach (var command in commands)
         {
+          var now = DateTime.Now;
           var parameters = command.GetParameters();
           var serviceAttrs = parameters.Where(p => p.GetCustomAttribute<ServiceAttribute>() != null);
           var methodArgs = command.GetParameters().Select(p =>
@@ -80,6 +83,7 @@ namespace Commands
             }
             return null;
           });
+          _logger.LogInformation($"Processing arguments took {(DateTime.Now - now).TotalMilliseconds}ms");
           var result = command.Invoke(null, methodArgs.ToArray());
           if (result is Task awaitable)
           {

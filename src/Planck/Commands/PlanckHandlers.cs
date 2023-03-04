@@ -41,5 +41,10 @@ namespace Planck.Commands
     {
 
     }
+
+    public static void HandleNavigateRequest([Service] IPlanckWindow window, string to)
+    {
+
+    }
   }
 }

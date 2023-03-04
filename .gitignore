@@ -1,6 +1,7 @@
 .vs/
 .vscode/
 build/
+!src/Planck/build/
 dist/
 bin/
 obj/
@@ -8,3 +9,6 @@ obj/
 package-lock.json
 node_modules/
 *.log
+.yarn
+
+src/Planck.Demo.SelfHosted/Client/public/images/splashscreen.png

@@ -1,10 +1,9 @@
-﻿using Planck.Controls;
+﻿using Planck.Commands;
 using Planck.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows;
-using Planck.Commands;
 using Planck.Resources;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
@@ -14,13 +13,9 @@ using Microsoft.Web.WebView2.Core;
 using Planck.Messages;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.DependencyInjection;
-using System.Windows.Input;
-using System.Diagnostics;
-using System.Net.Http;
-using Planck.HttpClients;
-using Microsoft.Extensions.Http;
-using Commands;
+using System.Windows.Media;
+using Planck.Extensions;
+using Planck.Commands.Internal;
 
 namespace Planck.Controls.Wpf
 {
@@ -29,6 +24,7 @@ namespace Planck.Controls.Wpf
     private static readonly Regex _commandRequestRegex = new(@"^([A-Za-z0-9\._]+)__request__([0-9]+)$");
     private static readonly Regex _commandResponseRegex = new(@"^([A-Za-z0-9\._]+)__response__([0-9]+)$");
 
+    #region Properties
     public static readonly DependencyProperty SslOnlyProperty = DependencyProperty.Register(
       "SslOnly",
       typeof(bool),
@@ -48,6 +44,12 @@ namespace Planck.Controls.Wpf
       "AllowExternalMessages",
       typeof(bool),
       typeof(PlanckWindow));
+
+    public static readonly DependencyProperty HasCompletedBootstrapProperty = DependencyProperty.Register(
+      "HasCompletedBootstrap",
+      typeof(bool),
+      typeof(PlanckWindow));
+    #endregion
 
     public bool SslOnly
     {
@@ -73,42 +75,85 @@ namespace Planck.Controls.Wpf
       set => SetValue(AllowExternalMessagesProperty, value);
     }
 
+    public bool HasCompletedBootstrap
+    {
+      get => (bool)GetValue(HasCompletedBootstrapProperty);
+      set
+      {
+        SetValue(HasCompletedBootstrapProperty, value);
+        BootstrapCompleted?.Invoke(this, EventArgs.Empty);
+      }
+    }
+
     public CoreWebView2 CoreWebView2 => WebView.CoreWebView2;
+    public event EventHandler BootstrapCompleted;
 
     protected WebView2 WebView => (WebView2)Content;
 
-    private readonly IResourceService _resourceService;
-    private readonly ILogger<PlanckWindow> _logger;
-    private readonly IPlanckSplashscreen _splashscreen;
-    private readonly PlanckConfiguration _configuration;
-    private readonly ICommandHandlerService _commandHandlerService;
+    readonly IResourceService _resourceService;
+    readonly ILogger<PlanckWindow> _logger;
+    readonly IPlanckSplashscreen _splashscreen;
+    readonly PlanckConfiguration _configuration;
+    readonly ICommandHandlerService _commandHandlerService;
 
     public PlanckWindow(
       IResourceService resourceService,
-      IOptions<PlanckConfiguration> options,
       ILogger<PlanckWindow> logger,
       IPlanckSplashscreen splashscreen,
-      ICommandHandlerService commandHandlerService)
+      ICommandHandlerService commandHandlerService,
+      IOptions<PlanckConfiguration> configuration,
+      CoreWebView2EnvironmentOptions envOptions)
     {
-      _configuration = options.Value;
-      SslOnly = options.Value.SslOnly;
-      OpenLinksIn = options.Value.OpenLinksIn;
-      Splashscreen = options.Value.Splashscreen;
+      Background = System.Windows.Media.Brushes.Transparent;
+      _configuration = configuration.Value;
+
+      if (SslOnly == default)
+        SslOnly = _configuration.SslOnly;
+      if (OpenLinksIn == default)
+        OpenLinksIn = _configuration.OpenLinksIn;
+
+      if (Splashscreen == default)
+        Splashscreen = _configuration.Splashscreen;
+
       _resourceService = resourceService;
       _logger = logger;
       _splashscreen = splashscreen;
       _commandHandlerService = commandHandlerService;
       Content = new WebView2();
-      Loaded += (_, _) =>
+      Loaded += async (_, _) =>
       {
-        ConfigureNavigationEvents();
-        ConfigureSecurity();
-        ConfigureCommands();
-        WebView.Source = new Uri(_configuration.DevUrl);
+        var env = await CoreWebView2Environment.CreateAsync(null, null, envOptions);
+        await WebView.EnsureCoreWebView2Async(env);
+        this.ConfigureSecurityPolicies(OpenLinksIn);
+        this.ConfigureResources(_resourceService);
+        this.ConfigureCommands(_commandHandlerService);
+        //CoreWebView2.NavigationStarting += (_, args) =>
+        //{
+        //  if (args.Uri == Constants.StartPageContentAsBase64)
+        //  {
+        //    this.ConfigureSecurityPolicies(OpenLinksIn);
+        //    this.ConfigureResources(_resourceService);
+        //    this.ConfigureCommands(_commandHandlerService);
+        //  }
+        //};
+        
+        WebView.NavigateToString(Constants.StartPageContent);
+
 #if DEBUG
-        ConfigureDebug();
-#else
+        WebView.CoreWebView2.OpenDevToolsWindow();
 #endif
+      };
+      // this portion hides the window until it's ready to prevent white screen flicker
+      var windowState = WindowState;
+      var showInTaskbar = ShowInTaskbar;
+
+      WindowState = WindowState.Minimized;
+      ShowInTaskbar = false;
+      BootstrapCompleted += (sender, args) =>
+      {
+        WindowState = windowState;
+        ShowInTaskbar = showInTaskbar;
+        CoreWebView2.PostWebMessage(new NavigateCommand { To = _configuration.Entry });
       };
     }
 
@@ -124,87 +169,12 @@ namespace Planck.Controls.Wpf
 
     public void ShowSplashscreen()
     {
-      _splashscreen.Show();
+      _splashscreen?.Show();
     }
 
     public void CloseSplashscreen()
     {
-      _splashscreen.Close();
-    }
-
-    async void ConfigureNavigationEvents()
-    {
-      await WebView.EnsureCoreWebView2Async();
-      WebView.NavigationStarting += (sender, args) =>
-      {
-        // TODO: cancel if not devurl
-      };
-    }
-
-    async void ConfigureSecurity()
-    {
-      await WebView.EnsureCoreWebView2Async();
-      CoreWebView2.NewWindowRequested += (_, args) =>
-      {
-        args.Handled = true;
-        // TODO: change based on config
-        switch(OpenLinksIn)
-        {
-          case PlanckConfiguration.LinkLaunchRule.MachineDefault:
-            break;
-          case PlanckConfiguration.LinkLaunchRule.CurrentWindow:
-            WebView.Source = new Uri(args.Uri);
-            break;
-          case PlanckConfiguration.LinkLaunchRule.NewWindow:
-            break;
-        }
-      };
-    }
-
-    async void ConfigureCommands()
-    {
-      await WebView.EnsureCoreWebView2Async();
-      CoreWebView2.WebMessageReceived += async (_, args) =>
-      {
-        if (args.Source != _configuration.DevUrl && !AllowExternalMessages)
-        {
-          throw new UnauthorizedAccessException("This container is configured to not accept external messages");
-        }
-        if (PlanckCommandMessage.TryParse(args.WebMessageAsJson, out var message))
-        {
-          if (!_commandRequestRegex.IsMatch(message.Command) && !_commandResponseRegex.IsMatch(message.Command))
-          {
-            return;
-          }
-          var (commandName, commandId) = GetCommandParts(message.Command);
-          if (message.Command.Contains("__request__"))
-          {
-            var result = await _commandHandlerService.InvokeAsync(commandName, message.Body);
-            var resultAsJson = JsonSerializer.SerializeToElement(result);
-            var response = new PlanckCommandMessage
-            {
-              Command = $"{commandName}__response__${commandId}",
-              Body = resultAsJson,
-            };
-            var responseBytes = JsonSerializer.SerializeToUtf8Bytes(response);
-            CoreWebView2.PostWebMessageAsJson(Encoding.UTF8.GetString(responseBytes));
-          }
-          else if (message.Command.Contains("__response__"))
-          {
-            await _commandHandlerService.InvokeAsync(commandName, message.Body);
-          }
-          else
-          {
-            // shouldn't happen, ignore
-          }
-        }
-      };
-    }
-
-    async void ConfigureDebug()
-    {
-      await WebView.EnsureCoreWebView2Async();
-      WebView.CoreWebView2.OpenDevToolsWindow();
+      _splashscreen?.Close();
     }
 
     static (string commandName, string commandId) GetCommandParts(string fullCommand)

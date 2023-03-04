@@ -1,20 +1,18 @@
-﻿using Commands;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Web.WebView2.Core;
 using Planck.Commands;
 using Planck.Configuration;
 using Planck.Controls;
 using Planck.HttpClients;
 using Planck.MacroConfig.Extensions;
 using Planck.Resources;
-using System;
-using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Reflection;
-using System.Text;
-using System.Text.Json;
+using System.Resources;
 
 namespace Planck.Extensions
 {
@@ -23,44 +21,40 @@ namespace Planck.Extensions
     public static IHostBuilder UsePlanck(this IHostBuilder host, PlanckConfiguration? configuration = null) =>
       host
         .UseDefaultCommands()
-        .ConfigureAppConfiguration((context, config) =>
-          config
-            .AddJsonFile("appsettings.json", true, true)
-            .AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", true, true)
-            .AddJsonFile("appsettings.local.json", true, true)
-            .AddJsonFile($"appsettings.${context.HostingEnvironment.EnvironmentName}.local.json", true, true)
-            //.AddJsonStream(new MemoryStream(configuration != null
-            //  ? JsonSerializer.SerializeToUtf8Bytes(configuration)
-            //  : Encoding.UTF8.GetBytes("{}"), true))
-            .BindMacros(new()
-            {
-              { "ProjectRoot", "F:\\dev\\Planck\\src\\Planck.Demo.SelfHosted" },
-              { "BuildDirectory", "" },
-              { "ProjectVersion", "" }
-            })
-        )
         .ConfigureServices((context, services) =>
         {
-          services
-            .AddHostedService<PlanckHostService>();
+          var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+
+          // for reference in the components
+          services.AddSingleton(assembly);
+
           // Add HTTP clients
-          //services
-          //  .AddHttpClient(nameof(PlanckHttpClient), (services, client) =>
-          //  {
-          //    client.BaseAddress = new Uri(services.GetService<IOptions<PlanckConfiguration>>().Value.DevUrl);
-          //    client.DefaultRequestHeaders.Add("Accept-Language", "en-GB,en-US;q=0.8,en;q=0.6,ru;q=0.4");
-          //  });
+          services.AddHttpClient(nameof(PlanckHttpClient), (services, client) =>
+            {
+              client.BaseAddress = new Uri(services.GetService<IOptions<PlanckConfiguration>>()!.Value.DevUrl!);
+              client.DefaultRequestHeaders.Add("Accept-Language", "en-GB,en-US;q=0.8,en;q=0.6,ru;q=0.4");
+            });
+
 
           services
             // TODO: switch to embedded based on load type
-            .AddSingleton<IResourceService, PackagedResourceService>();
+#if !DEBUG
+            .AddSingleton<IResourceService, LocalResourceService>()
+            .AddHostedService<PlanckDevServerService>();
+#else
+            .AddSingleton<IResourceService, EmbeddedResourceService>();
+#endif
+          // add environment
+          services
+            .AddSingleton(new CoreWebView2EnvironmentOptions("--disable-web-security"));
 
           // Add WPF controls
           services
-            .AddScoped<Controls.Wpf.PlanckSplashscreen>()
-            .AddScoped<Controls.Wpf.PlanckWindow>()
             // Add WinForms controls
             .AddScoped<Controls.WinForms.PlanckWindow>()
+            // .AddScoped<Controls.WinForms.PlanckSplashscreen>()
+            .AddScoped<Controls.Wpf.PlanckWindow>()
+            .AddScoped<Controls.Wpf.PlanckSplashscreen>()
             .AddScoped<IPlanckWindow>(services =>
               services.GetService<IOptions<PlanckConfiguration>>()!.Value.UseWpf
                 ? services.GetService<Controls.Wpf.PlanckWindow>()!
@@ -72,8 +66,6 @@ namespace Planck.Extensions
                 // TODO: add WinForms splashscreen
                 : null!
             );
-
-          services.Configure<PlanckConfiguration>(context.Configuration.GetSection("Planck"));
         });
 
 
@@ -91,6 +83,19 @@ namespace Planck.Extensions
           .AddHandlers<PlanckHandlers>()
       );
 
+    /// <summary>
+    ///   Configures the app to use the Planck object within loaded configurations.
+    /// </summary>
+    /// <param name="host"></param>
+    /// <returns></returns>
+    public static IHostBuilder UsePlanckConfiguration(this IHostBuilder host, Dictionary<string, string> macros) =>
+      host
+        .ConfigureServices((context, services) =>
+          services.Configure<PlanckConfiguration>(
+            context.Configuration.GetSection(PlanckConfiguration.PlanckKey)))
+        .ConfigureAppConfiguration(config =>
+          config.BindMacros(macros));
+
     public static IServiceCollection AddHandlers<T>(this IServiceCollection services)
     {
       var methods = typeof(T).GetMethods();
@@ -98,12 +103,29 @@ namespace Planck.Extensions
       // with the methods to register
       services.AddSingleton<ICommandHandlerService, CommandHandlerService>((services) =>
       {
-        var commandHandlerService = new CommandHandlerService(services.GetService<IServiceProvider>());
+        var commandHandlerService = new CommandHandlerService(
+          services.GetService<IServiceProvider>()!,
+          services.GetService<ILogger<CommandHandlerService>>()!);
         commandHandlerService.BuildFromType<T>();
         return commandHandlerService;
       });
 
       return services;
+    }
+
+
+    static string GetProjectLocation()
+    {
+      var currentDir = AppDomain.CurrentDomain.BaseDirectory;
+      while (currentDir != null && Path.GetDirectoryName(currentDir) != currentDir)
+      {
+        if (Directory.GetFiles(currentDir).Any(file => file.EndsWith(".csproj")))
+        {
+          return currentDir;
+        }
+        currentDir = Path.GetDirectoryName(currentDir);
+      }
+      throw new FileNotFoundException("No csproj file found");
     }
   }
 }
