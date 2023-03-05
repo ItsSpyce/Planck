@@ -8,7 +8,6 @@ namespace Planck
       <!DOCTYPE html>
       <html>
         <head>
-          <script src="https://code.jquery.com/jquery-3.6.3.min.js"></script>
           <style>
             html,
             body {
