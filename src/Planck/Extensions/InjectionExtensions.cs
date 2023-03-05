@@ -38,7 +38,7 @@ namespace Planck.Extensions
 
           services
             // TODO: switch to embedded based on load type
-#if !DEBUG
+#if DEBUG
             .AddSingleton<IResourceService, LocalResourceService>()
             .AddHostedService<PlanckDevServerService>();
 #else

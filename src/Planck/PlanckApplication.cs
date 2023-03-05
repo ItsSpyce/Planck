@@ -24,7 +24,7 @@ namespace Planck
 
       host.UsePlanckConfiguration(new()
       {
-        {"ProjectRoot", GetProjectLocation() }
+        {"ProjectRoot", ProcessUtilities.GetProjectLocation() }
       });
       host.UsePlanck(configuration);
       return host;
@@ -47,20 +47,6 @@ namespace Planck
       var window = host.Services.GetService<IPlanckWindow>()!;
       window.Show();
       return window;
-    }
-
-    static string GetProjectLocation()
-    {
-      var currentDir = AppDomain.CurrentDomain.BaseDirectory;
-      while (currentDir != null && Path.GetDirectoryName(currentDir) != currentDir)
-      {
-        if (Directory.GetFiles(currentDir).Any(file => file.EndsWith(".csproj")))
-        {
-          return currentDir;
-        }
-        currentDir = Path.GetDirectoryName(currentDir);
-      }
-      throw new FileNotFoundException("No csproj file found");
     }
   }
 }

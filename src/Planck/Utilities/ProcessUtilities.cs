@@ -8,30 +8,18 @@ namespace Planck.Utilities
 {
   internal static class ProcessUtilities
   {
-    public static bool TryRunCommand(string command, string workingDirectory, out Process process)
+    public static string GetProjectLocation()
     {
-      var commandParts = command.Split(new[] { ' ' }, 2);
-      process = new Process
+      var currentDir = AppDomain.CurrentDomain.BaseDirectory;
+      while (currentDir != null && Path.GetDirectoryName(currentDir) != currentDir)
       {
-        StartInfo = new()
+        if (Directory.GetFiles(currentDir).Any(file => file.EndsWith(".csproj")))
         {
-          WorkingDirectory = workingDirectory,
-          UseShellExecute = true,
-          CreateNoWindow = false,
-          FileName = commandParts[0],
-          Arguments = commandParts[1],
-        },
-        EnableRaisingEvents = true,
-      };
-      try
-      {
-        process.Start();
-        return true;
+          return currentDir;
+        }
+        currentDir = Path.GetDirectoryName(currentDir);
       }
-      catch (Exception)
-      {
-        return false;
-      }
+      throw new FileNotFoundException("No csproj file found");
     }
   }
 }

@@ -16,6 +16,7 @@ using System.Text.RegularExpressions;
 using System.Windows.Media;
 using Planck.Extensions;
 using Planck.Commands.Internal;
+using System.IO;
 
 namespace Planck.Controls.Wpf
 {
@@ -125,17 +126,8 @@ namespace Planck.Controls.Wpf
         var env = await CoreWebView2Environment.CreateAsync(null, null, envOptions);
         await WebView.EnsureCoreWebView2Async(env);
         this.ConfigureSecurityPolicies(OpenLinksIn);
-        this.ConfigureResources(_resourceService);
+        this.ConfigureResources(_resourceService, _configuration.DevUrl ?? Directory.GetCurrentDirectory());
         this.ConfigureCommands(_commandHandlerService);
-        //CoreWebView2.NavigationStarting += (_, args) =>
-        //{
-        //  if (args.Uri == Constants.StartPageContentAsBase64)
-        //  {
-        //    this.ConfigureSecurityPolicies(OpenLinksIn);
-        //    this.ConfigureResources(_resourceService);
-        //    this.ConfigureCommands(_commandHandlerService);
-        //  }
-        //};
         
         WebView.NavigateToString(Constants.StartPageContent);
 
@@ -153,7 +145,7 @@ namespace Planck.Controls.Wpf
       {
         WindowState = windowState;
         ShowInTaskbar = showInTaskbar;
-        CoreWebView2.PostWebMessage(new NavigateCommand { To = _configuration.Entry });
+        this.NavigateToEntry(_configuration);
       };
     }
 

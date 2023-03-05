@@ -5,6 +5,7 @@ using Planck.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.Loader;
 using System.Text;
 
@@ -22,23 +23,23 @@ namespace Planck
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-#if !DEBUG
+#if DEBUG
       if (!string.IsNullOrEmpty(_config.DevCommand))
       {
-        if (ProcessUtilities.TryRunCommand(_config.DevCommand, _config.ClientDirectory ?? AppDomain.CurrentDomain.BaseDirectory, out var process))
+        var commandParts = new[] { "run", _config.DevCommand };
+        var process = new Process
         {
-          _nodeProcess = process;
-          // none of these are working :)
-          AssemblyLoadContext.Default.Unloading += (_) =>
+          StartInfo = new()
           {
-            process.Kill();
-          };
-          Process.GetCurrentProcess().EnableRaisingEvents = true;
-          Process.GetCurrentProcess().Exited += (_, _) =>
-          {
-            process.Kill();
-          };
-        }
+            WorkingDirectory = Path.Join(ProcessUtilities.GetProjectLocation(), _config.ClientDirectory ?? "."),
+            UseShellExecute = true,
+            CreateNoWindow = false,
+            FileName = "npm.cmd",
+            Arguments = $"run {_config.DevCommand}",
+          },
+          EnableRaisingEvents = true,
+        };
+        process.Start();
       }
 #endif
     }
@@ -48,5 +49,6 @@ namespace Planck
       _nodeProcess?.Kill();
       _nodeProcess?.Dispose();
     }
+
   }
 }

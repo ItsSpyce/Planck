@@ -1,11 +1,13 @@
 ﻿using Microsoft.Web.WebView2.Core;
 using Planck.Commands;
+using Planck.Commands.Internal;
 using Planck.Configuration;
 using Planck.Controls;
 using Planck.Messages;
 using Planck.Resources;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -68,7 +70,7 @@ namespace Planck.Extensions
 
         const handlers = {
           async navigate(args) {
-            const response = await fetch("{URL}" + args.to.replace(/\\|\//g, '__'));
+            const response = await fetch("{URL}" + args.to.replace('\\', '__'));
             const html = await response.text();
             const iframe = document.getElementById('embedded-content');
             iframe.contentWindow.document.write(html);
@@ -128,12 +130,12 @@ namespace Planck.Extensions
         => args.Frame.WebMessageReceived += WebMessageReceived;
     }
 
-    public static async void ConfigureResources(this IPlanckWindow planckWindow, IResourceService resources)
+    public static async void ConfigureResources(this IPlanckWindow planckWindow, IResourceService resources, string root)
     {
       planckWindow.CoreWebView2.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
 
       await planckWindow.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(_stdlib);
-      resources.ConnectToPlanck(planckWindow, null);
+      resources.ConnectToPlanck(planckWindow, root);
     }
 
     public static void ConfigureSecurityPolicies(this IPlanckWindow planckWindow, PlanckConfiguration.LinkLaunchRule openLinksIn)
@@ -154,6 +156,27 @@ namespace Planck.Extensions
             break;
         }
       };
+    }
+
+    internal static void NavigateToEntry(this IPlanckWindow planckWindow, PlanckConfiguration config)
+    {
+#if DEBUG
+      var url = config.DevUrl;
+      if (string.IsNullOrEmpty(url))
+      {
+        url = Directory.GetCurrentDirectory();
+      }
+      else
+      {
+        if (!Path.IsPathFullyQualified(url))
+        {
+          url = Path.Combine(Directory.GetCurrentDirectory(), url);
+        }
+      }
+      planckWindow.CoreWebView2.PostWebMessage(new NavigateCommand { To = url });
+#else
+      planckWindow.CoreWebView2.PostWebMessage(new NavigateCommand { To = config.Entry });
+#endif
     }
 
     static (string commandName, string commandId) GetCommandParts(string fullCommand)
