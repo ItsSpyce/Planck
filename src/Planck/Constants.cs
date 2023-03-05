@@ -7,30 +7,6 @@ namespace Planck
     public const string StartPageContent = """
       <!DOCTYPE html>
       <html>
-        <head>
-          <style>
-            html,
-            body {
-              margin: 0;
-              padding: 0;
-            }
-
-            #embedded-content {
-              position: absolute;
-              top: 0;
-              left: 0;
-              width: 100vw;
-              height: 100vh;
-              outline: none;
-              border: none;
-              margin: 0;
-              padding: 0;
-            }
-          </style>
-        </head>
-        <body>
-          <iframe id="embedded-content"></iframe>
-        </body>
       </html>
       """;
 

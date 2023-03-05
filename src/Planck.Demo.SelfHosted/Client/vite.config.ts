@@ -1,16 +1,16 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  clearScreen: false,
+  clearScreen: true,
   server: {
     strictPort: true,
     port: 3000,
   },
   build: {
     outDir: 'dist',
-    assetsDir: 'assets'
-  }
-})
+    assetsDir: 'assets',
+  },
+});

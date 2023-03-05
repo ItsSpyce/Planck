@@ -1,21 +1,12 @@
-﻿using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using Microsoft.Web.WebView2.Core;
-using Planck.Commands.Internal;
 using Planck.Configuration;
 using Planck.Controls;
-using Planck.Controls.Wpf;
 using Planck.Extensions;
 using Planck.Utilities;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
-using System.Net;
-using System.Numerics;
 using System.Reflection;
-using System.Text;
 
 namespace Planck.Resources
 {
@@ -85,15 +76,19 @@ namespace Planck.Resources
       {
         if (args.Uri.StartsWith(IResourceService.AppUrl))
         {
-          planck.CoreWebView2.Navigate(args.Uri.Replace(IResourceService.AppUrl, root));
+          planck.CoreWebView2.Navigate(args.Uri.Replace(IResourceService.AppUrl, null));
         }
       };
       planck.CoreWebView2.WebResourceRequested += (_, args) =>
       {
+        // TODO: figure out how to fix base-path relative resource requests in WebView2
         if (args.Request.Uri.StartsWith(IResourceService.AppUrl))
         {
-          var uri = new Uri(args.Request.Uri);
-
+          args.Request.Uri = args.Request.Uri.Replace(IResourceService.AppUrl, null);
+        }
+        else
+        {
+          Debugger.Break();
         }
       };
     }
@@ -120,6 +115,7 @@ namespace Planck.Resources
       {
         if (args.Request.Uri.StartsWith(IResourceService.AppUrl, StringComparison.OrdinalIgnoreCase))
         {
+          var deferral = args.GetDeferral();
           var parsedUri = new Uri(args.Request.Uri);
           var uriWithoutQuery = parsedUri.AbsolutePath[1..].Replace("__", "\\");
           if (string.IsNullOrEmpty(uriWithoutQuery))
@@ -138,6 +134,10 @@ namespace Planck.Resources
           catch (Exception)
           {
             Console.WriteLine($"No resource found matching {uriWithoutQuery}");
+          }
+          finally
+          {
+            deferral.Complete();
           }
         }
       };

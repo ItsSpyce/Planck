@@ -1,20 +1,9 @@
 ﻿using Microsoft.Extensions.Options;
 using Planck.Configuration;
 using Planck.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Reflection;
-using System.Resources;
-using System.Text;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using Image = System.Windows.Controls.Image;
 
 namespace Planck.Controls.Wpf

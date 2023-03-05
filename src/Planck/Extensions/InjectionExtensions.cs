@@ -9,10 +9,8 @@ using Planck.Controls;
 using Planck.HttpClients;
 using Planck.MacroConfig.Extensions;
 using Planck.Resources;
-using System.ComponentModel;
 using System.IO;
 using System.Reflection;
-using System.Resources;
 
 namespace Planck.Extensions
 {

@@ -1,9 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using Planck.Configuration;
-using System;
-using System.Collections.Generic;
 using System.Net.Http;
-using System.Text;
 
 namespace Planck.HttpClients
 {

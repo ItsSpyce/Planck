@@ -1,21 +1,13 @@
 ﻿using Planck.Commands;
 using Planck.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Windows;
 using Planck.Resources;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Web.WebView2.Wpf;
-using Planck.Utilities;
 using Microsoft.Web.WebView2.Core;
-using Planck.Messages;
-using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Windows.Media;
 using Planck.Extensions;
-using Planck.Commands.Internal;
 using System.IO;
 
 namespace Planck.Controls.Wpf

@@ -5,8 +5,6 @@ using Planck.Configuration;
 using Planck.Controls;
 using Planck.Messages;
 using Planck.Resources;
-using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.Json;
@@ -21,6 +19,7 @@ namespace Planck.Extensions
 
       (() => {
         let commandId = 0;
+        const baseUrl = "{URL}";
 
         function getNewCommandId() {
           if (commandId === Number.MAX_SAFE_INTEGER) {
@@ -70,10 +69,13 @@ namespace Planck.Extensions
 
         const handlers = {
           async navigate(args) {
-            const response = await fetch("{URL}" + args.to.replace('\\', '__'));
+            const response = await fetch(baseUrl + args.to.replace('\\', '__'));
             const html = await response.text();
-            const iframe = document.getElementById('embedded-content');
-            iframe.contentWindow.document.write(html);
+            document.open();
+            document.write(html);
+            document.close();
+            // const iframe = document.getElementById('embedded-content');
+            // iframe.contentWindow.document.write(html);
           },
         };
 
@@ -84,6 +86,23 @@ namespace Planck.Extensions
             handler(args.data.body);
           }
         });
+
+        function updateTitle() {
+          sendMessage('SET_WINDOW_TITLE', { title: document.title });
+        }
+
+        setTimeout(() => {
+          const target = document.querySelector('title');
+          const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+              udpateTitle();
+            });
+          });
+          observer.observe(target, { childList: true });
+          if (document.title) {
+            updateTitle();
+          }
+        }, 150);
       })();
       
       """.Replace("{URL}", IResourceService.AppUrl);
@@ -168,7 +187,7 @@ namespace Planck.Extensions
       }
       else
       {
-        if (!Path.IsPathFullyQualified(url))
+        if (!Path.IsPathFullyQualified(url) && !Uri.IsWellFormedUriString(url, UriKind.Absolute))
         {
           url = Path.Combine(Directory.GetCurrentDirectory(), url);
         }

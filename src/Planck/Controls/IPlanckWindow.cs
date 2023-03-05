@@ -1,8 +1,4 @@
 ﻿using Microsoft.Web.WebView2.Core;
-using Planck.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Planck.Controls
 {

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Planck.Controls
+﻿namespace Planck.Controls
 {
   public interface IPlanckSplashscreen
   {
