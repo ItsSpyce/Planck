@@ -4,16 +4,17 @@ using Microsoft.Extensions.Options;
 using Planck.Configuration;
 using Planck.Controls;
 using Planck.Extensions;
+using Planck.Resources;
 using Planck.Utilities;
 
 namespace Planck
 {
   public static class PlanckApplication
   {
-    public static IHostBuilder CreateHost(PlanckConfiguration? configuration = null) =>
-      CreateHost(Array.Empty<string>(), configuration);
+    public static IHostBuilder CreateHost(ResourceMode resourceMode, PlanckConfiguration? configuration = null) =>
+      CreateHost(Array.Empty<string>(), resourceMode, configuration);
 
-    public static IHostBuilder CreateHost(string[] args, PlanckConfiguration? configuration = null)
+    public static IHostBuilder CreateHost(string[] args, ResourceMode resourceMode, PlanckConfiguration? configuration = null)
     {
       var host = Host.CreateDefaultBuilder(args);
 
@@ -21,14 +22,24 @@ namespace Planck
       {
         {"ProjectRoot", ProcessUtilities.GetProjectLocation() }
       });
-      host.UsePlanck(configuration);
+      host.UsePlanck(resourceMode, configuration);
       return host;
     }
       
-
-    public static async Task<IPlanckWindow> StartAsync(PlanckConfiguration? configuration = null)
+    public static Task<IPlanckWindow> StartAsync(PlanckConfiguration? configuration = null)
     {
-      var host = CreateHost(configuration)
+      var resourceMode =
+#if DEBUG
+        ResourceMode.Local;
+#else
+        ResourceMode.Embedded;
+#endif
+      return StartAsync(resourceMode, configuration);
+    }
+
+    public static async Task<IPlanckWindow> StartAsync(ResourceMode resourceMode, PlanckConfiguration? configuration = null)
+    {
+      var host = CreateHost(resourceMode, configuration)
         .Build();
       configuration ??= host.Services.GetService<IOptions<PlanckConfiguration>>()!.Value;
       if (!string.IsNullOrEmpty(configuration.Splashscreen))

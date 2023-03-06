@@ -3,16 +3,13 @@ using Microsoft.Web.WebView2.Core;
 using Planck.Configuration;
 using Planck.Controls;
 using Planck.Extensions;
-using Planck.Utilities;
-using System.Diagnostics;
 using System.IO;
-using System.Reflection;
 
 namespace Planck.Resources
 {
   public interface IResourceService
   {
-    public const string AppUrl = "http://appassets.resx/";
+    public const string AppUrl = "http://app.planck/";
 
     Stream? GetResource(string name);
     void ConnectToPlanck(IPlanckWindow planck, string? root);
@@ -21,6 +18,92 @@ namespace Planck.Resources
   internal abstract class InternalResourceService : IResourceService
   {
     protected readonly PlanckConfiguration _configuration;
+
+    protected const string _stdlib = """
+      if (typeof globalThis.planck === 'undefined') {
+        const planck = Object.create(null);
+    
+        let commandId = 0;
+    
+        const getNewCommandId = () => {
+          if (commandId === Number.MAX_SAFE_INTEGER) {
+            commandId = 0;
+          } else {
+            commandId++;
+          }
+          return commandId;
+        }
+
+        const sendMessage = (command, body = null) => {
+          const id = getNewCommandId();
+          const requestEventName = `${command}__request__${id}`;
+          const responseEventName = `${command}__response__${id}`;
+          return new Promise((resolve, reject) => {
+            const handler = (args) => {
+              try {
+                if (args.data.command !== responseEventName) {
+                  return;
+                }
+                resolve(args.data.body);
+              } catch (err) {
+                reject(err);
+              } finally {
+                window.chrome.webview.removeEventListener('message', handler);
+              }
+            };
+            window.chrome.webview.addEventListener('message', handler);
+            window.chrome.webview.postMessage({ command: requestEventName, body });
+            console.debug('Posted message', { command, body });
+          });
+        }
+    
+        Object.defineProperty(planck, 'sendMessage', {
+          get() {
+            return sendMessage;
+          },
+        });
+    
+        // remove context menu
+        window.addEventListener('contextmenu', window => window.preventDefault());
+    
+        const handlers = {
+          async navigate(args) {
+            const response = await fetch(window.location.origin + args.to.replace('\\', '__'));
+            const html = await response.text();
+            document.open();
+            document.write(html);
+            document.close();
+            updateTitle();
+          },
+        };
+    
+        window.chrome.webview.addEventListener('message', (args) => {
+          const handler = handlers[args.data.command];
+          if (handler) {
+            handler(args.data.body);
+          }
+        });
+    
+        const updateTitle = () => {
+          sendMessage('SET_WINDOW_TITLE', { title: document.title });
+        }
+    
+        setTimeout(() => {
+          const target = document.querySelector('title');
+          const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+              udpateTitle();
+            });
+          });
+          observer.observe(target, { childList: true });
+          if (document.title) {
+            updateTitle();
+          }
+        }, 500);
+        globalThis.planck = planck;
+      }
+
+    """;
 
     protected InternalResourceService(IOptions<PlanckConfiguration> options)
     {
@@ -48,105 +131,17 @@ namespace Planck.Resources
         }
       };
 
-      planck.CoreWebView2.NavigationCompleted += (_, args) =>
+      planck.CoreWebView2.NavigationCompleted += async (_, args) =>
       {
-        // Debugger.Break();
         if (!planck.HasCompletedBootstrap)
         {
           planck.HasCompletedBootstrap = true;
         }
       };
+      planck.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(_stdlib);
     }
 
     public abstract void ConnectToPlanck(IPlanckWindow planck, string? root);
     public abstract Stream? GetResource(string name);
-  }
-
-  internal class LocalResourceService : InternalResourceService
-  {
-
-    public LocalResourceService(IOptions<PlanckConfiguration> options) : base(options)
-    {
-    }
-
-    public override void ConnectToPlanck(IPlanckWindow planck, string? root)
-    {
-      ConnectWithLocalUri(planck, root);
-      planck.CoreWebView2.NavigationStarting += (_, args) =>
-      {
-        if (args.Uri.StartsWith(IResourceService.AppUrl))
-        {
-          planck.CoreWebView2.Navigate(args.Uri.Replace(IResourceService.AppUrl, null));
-        }
-      };
-      planck.CoreWebView2.WebResourceRequested += (_, args) =>
-      {
-        // TODO: figure out how to fix base-path relative resource requests in WebView2
-        if (args.Request.Uri.StartsWith(IResourceService.AppUrl))
-        {
-          args.Request.Uri = args.Request.Uri.Replace(IResourceService.AppUrl, null);
-        }
-        else
-        {
-          Debugger.Break();
-        }
-      };
-    }
-
-    public override Stream? GetResource(string name)
-    {
-      return File.OpenRead(Path.Join(_configuration.ClientDirectory, name));
-    }
-  }
-
-  internal class EmbeddedResourceService : InternalResourceService
-  {
-    readonly Assembly _assembly;
-
-    public EmbeddedResourceService(Assembly assembly, IOptions<PlanckConfiguration> config) : base(config)
-    {
-      _assembly = assembly;
-    }
-
-    public override void ConnectToPlanck(IPlanckWindow planck, string? root)
-    {
-      ConnectWithLocalUri(planck, root);
-      planck.CoreWebView2.WebResourceRequested += (_, args) =>
-      {
-        if (args.Request.Uri.StartsWith(IResourceService.AppUrl, StringComparison.OrdinalIgnoreCase))
-        {
-          var deferral = args.GetDeferral();
-          var parsedUri = new Uri(args.Request.Uri);
-          var uriWithoutQuery = parsedUri.AbsolutePath[1..].Replace("__", "\\");
-          if (string.IsNullOrEmpty(uriWithoutQuery))
-          {
-            uriWithoutQuery = _configuration.Entry;
-          }
-          try
-          {
-            var resx = GetResource(uriWithoutQuery);
-            if (resx != null)
-            {
-              var response = planck.CoreWebView2.CreateResourceResponse(resx);
-              args.Response = response;
-            }
-          }
-          catch (Exception)
-          {
-            Console.WriteLine($"No resource found matching {uriWithoutQuery}");
-          }
-          finally
-          {
-            deferral.Complete();
-          }
-        }
-      };
-    }
-
-    public override Stream? GetResource(string name)
-    {
-      var resourceName = UrlUtilities.GetResourceName(name);
-      return _assembly.GetManifestResourceStream(resourceName);
-    }
   }
 }

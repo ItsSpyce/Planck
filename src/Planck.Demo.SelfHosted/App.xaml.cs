@@ -1,13 +1,5 @@
 ﻿using Planck.Controls;
-using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.IO;
-using System.IO.Pipes;
-using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
+using Planck.Resources;
 using System.Windows;
 
 namespace Planck.Demo.SelfHosted
@@ -17,13 +9,11 @@ namespace Planck.Demo.SelfHosted
   /// </summary>
   public partial class App : Application
   {
-    private IPlanckWindow _planck;
+    IPlanckWindow _planck;
 
     async void OnStartup(object sender, StartupEventArgs args)
     {
-      _planck = await PlanckApplication.StartAsync();
-      await Task.Delay(3000);
-      _planck.CloseSplashscreen();
+      _planck = await PlanckApplication.StartAsync(ResourceMode.Embedded);
     }
   }
 }

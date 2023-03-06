@@ -9,6 +9,7 @@ using Microsoft.Web.WebView2.Core;
 using System.Text.RegularExpressions;
 using Planck.Extensions;
 using System.IO;
+using System.Windows.Input;
 
 namespace Planck.Controls.Wpf
 {
@@ -88,6 +89,7 @@ namespace Planck.Controls.Wpf
     readonly IPlanckSplashscreen _splashscreen;
     readonly PlanckConfiguration _configuration;
     readonly ICommandHandlerService _commandHandlerService;
+    readonly RoutedCommand _f12Command = new();
 
     public PlanckWindow(
       IResourceService resourceService,
@@ -120,11 +122,14 @@ namespace Planck.Controls.Wpf
         this.ConfigureSecurityPolicies(OpenLinksIn);
         this.ConfigureResources(_resourceService, _configuration.DevUrl ?? Directory.GetCurrentDirectory());
         this.ConfigureCommands(_commandHandlerService);
-        
-        WebView.NavigateToString(Constants.StartPageContent);
+
+        // WebView.NavigateToString(Constants.StartPageContent);
+        WebView.Source = new Uri(IResourceService.AppUrl);
 
 #if DEBUG
         WebView.CoreWebView2.OpenDevToolsWindow();
+        _f12Command.InputGestures.Add(new KeyGesture(Key.F12));
+        CommandBindings.Add(new(_f12Command, (_, args) => WebView.CoreWebView2.OpenDevToolsWindow()));
 #endif
       };
       // this portion hides the window until it's ready to prevent white screen flicker
@@ -138,6 +143,7 @@ namespace Planck.Controls.Wpf
         WindowState = windowState;
         ShowInTaskbar = showInTaskbar;
         this.NavigateToEntry(_configuration);
+        CloseSplashscreen();
       };
     }
 
@@ -159,14 +165,6 @@ namespace Planck.Controls.Wpf
     public void CloseSplashscreen()
     {
       _splashscreen?.Close();
-    }
-
-    static (string commandName, string commandId) GetCommandParts(string fullCommand)
-    {
-      var commandSections = _commandRequestRegex.Matches(fullCommand)[0];
-      var commandName = commandSections.Groups[1]?.Value!;
-      var commandId = commandSections.Groups[2]?.Value!;
-      return (commandName, commandId);
     }
   }
 }

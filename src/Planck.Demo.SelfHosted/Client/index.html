@@ -9,11 +9,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      window.chrome.webview.postMessage({
-        command: 'SET_WINDOW_TITLE__request__0',
-        body: { title: 'Test Message From HTML' },
-      });
-    </script>
   </body>
 </html>

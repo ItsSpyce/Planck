@@ -16,7 +16,7 @@ namespace Planck.Extensions
 {
   public static class InjectionExtensions
   {
-    public static IHostBuilder UsePlanck(this IHostBuilder host, PlanckConfiguration? configuration = null) =>
+    public static IHostBuilder UsePlanck(this IHostBuilder host, ResourceMode resourceMode, PlanckConfiguration? configuration = null) =>
       host
         .UseDefaultCommands()
         .ConfigureServices((context, services) =>
@@ -33,15 +33,19 @@ namespace Planck.Extensions
               client.DefaultRequestHeaders.Add("Accept-Language", "en-GB,en-US;q=0.8,en;q=0.6,ru;q=0.4");
             });
 
-
-          services
-            // TODO: switch to embedded based on load type
+          switch (resourceMode)
+          {
+            case ResourceMode.Local:
+              services.AddSingleton<IResourceService, LocalResourceService>();
 #if DEBUG
-            .AddSingleton<IResourceService, LocalResourceService>()
-            .AddHostedService<PlanckDevServerService>();
-#else
-            .AddSingleton<IResourceService, EmbeddedResourceService>();
+              services.AddHostedService<PlanckDevServerService>();
 #endif
+              break;
+            case ResourceMode.Embedded:
+              services.AddSingleton<IResourceService, EmbeddedResourceService>();
+              break;
+          }
+
           // add environment
           services
             .AddSingleton(new CoreWebView2EnvironmentOptions("--disable-web-security"));
