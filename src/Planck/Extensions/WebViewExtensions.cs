@@ -4,6 +4,7 @@ using Planck.Resources;
 using Planck.Utilities;
 using System.IO;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -34,12 +35,29 @@ namespace Planck.Extensions
       coreWebView2.PostWebMessageAsJson(asJsonStr);
     }
 
-    public static CoreWebView2WebResourceResponse CreateResourceResponse(this CoreWebView2 coreWebView2, Stream stream, HttpStatusCode code = HttpStatusCode.OK)
+    public static CoreWebView2WebResourceResponse CreateResourceResponse(
+      this CoreWebView2 coreWebView2,
+      Stream stream) => CreateResourceResponse(coreWebView2, stream, HttpStatusCode.OK);
+
+    public static CoreWebView2WebResourceResponse CreateResourceResponse(
+      this CoreWebView2 coreWebView2,
+      Stream stream,
+      HttpStatusCode statusCode) => CreateResourceResponse(coreWebView2, stream, statusCode, new());
+
+    public static CoreWebView2WebResourceResponse CreateResourceResponse(
+      this CoreWebView2 coreWebView2,
+      Stream stream,
+      HttpStatusCode statusCode,
+      Dictionary<string, string> headers)
     {
       var response = coreWebView2.Environment.CreateWebResourceResponse(
-        new ManagedStream(stream), (int)code, "OK", _defaultHeaders);
+        new ManagedStream(stream), (int)statusCode, "OK", $"{_defaultHeaders}{Environment.NewLine}{GetHeadersFromDictionary(headers)}");
       // TODO: change message based on code
       return response;
     }
+
+    static string GetHeadersFromDictionary(Dictionary<string, string> headers) => string.Join(
+      Environment.NewLine,
+      headers.Select((kvp) => $"{kvp.Key}: {kvp.Value}"));
   }
 }

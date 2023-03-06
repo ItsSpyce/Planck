@@ -142,7 +142,7 @@ namespace Planck.Controls.Wpf
       {
         WindowState = windowState;
         ShowInTaskbar = showInTaskbar;
-        this.NavigateToEntry(_configuration);
+        // this.NavigateToEntry(_configuration);
         CloseSplashscreen();
       };
     }

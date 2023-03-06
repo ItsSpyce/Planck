@@ -5,6 +5,7 @@ using Planck.Extensions;
 using Planck.Utilities;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Reflection;
 
 namespace Planck.Resources
@@ -44,7 +45,14 @@ namespace Planck.Resources
             var resx = GetResource(uriWithoutQuery);
             if (resx != null)
             {
-              var response = planck.CoreWebView2.CreateResourceResponse(resx);
+              var mimeType = MimeMapping.GetMimeMapping(uriWithoutQuery);
+              var response = planck.CoreWebView2.CreateResourceResponse(
+                resx,
+                HttpStatusCode.OK,
+                new()
+                {
+                  {"Content-Type", mimeType }
+                });
               args.Response = response;
             }
           }
