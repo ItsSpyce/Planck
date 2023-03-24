@@ -10,6 +10,9 @@ using System.Text.RegularExpressions;
 using Planck.Extensions;
 using System.IO;
 using System.Windows.Input;
+using Planck.Modules;
+using Planck.Modules.Internal;
+using Planck.Messages;
 
 namespace Planck.Controls.Wpf
 {
@@ -88,16 +91,17 @@ namespace Planck.Controls.Wpf
     readonly ILogger<PlanckWindow> _logger;
     readonly IPlanckSplashscreen _splashscreen;
     readonly PlanckConfiguration _configuration;
-    readonly ICommandHandlerService _commandHandlerService;
+    readonly IMessageService _messageService;
+    readonly IModuleService _moduleService;
     readonly RoutedCommand _f12Command = new();
 
     public PlanckWindow(
       IResourceService resourceService,
       ILogger<PlanckWindow> logger,
       IPlanckSplashscreen splashscreen,
-      ICommandHandlerService commandHandlerService,
-      IOptions<PlanckConfiguration> configuration,
-      CoreWebView2EnvironmentOptions envOptions)
+      IMessageService messageService,
+      IModuleService moduleService,
+      IOptions<PlanckConfiguration> configuration)
     {
       Background = System.Windows.Media.Brushes.Transparent;
       _configuration = configuration.Value;
@@ -113,15 +117,19 @@ namespace Planck.Controls.Wpf
       _resourceService = resourceService;
       _logger = logger;
       _splashscreen = splashscreen;
-      _commandHandlerService = commandHandlerService;
+      _messageService = messageService;
+      _moduleService = moduleService;
       Content = new WebView2();
       Loaded += async (_, _) =>
       {
-        var env = await CoreWebView2Environment.CreateAsync(null, null, envOptions);
-        await WebView.EnsureCoreWebView2Async(env);
+        Hide();
+        // var env = await CoreWebView2Environment.CreateAsync(null, null, envOptions);
+        await WebView.EnsureCoreWebView2Async();
         this.ConfigureSecurityPolicies(OpenLinksIn);
         this.ConfigureResources(_resourceService, _configuration.DevUrl ?? Directory.GetCurrentDirectory());
-        this.ConfigureCommands(_commandHandlerService);
+        this.ConfigureMessages(_messageService);
+        this.ConfigureModules(_moduleService);
+        CoreWebView2.AddHostObjectToScript("clipboard", new ClipboardModule(this));
 
         // WebView.NavigateToString(Constants.StartPageContent);
         WebView.Source = new Uri(IResourceService.AppUrl);
@@ -136,26 +144,26 @@ namespace Planck.Controls.Wpf
       var windowState = WindowState;
       var showInTaskbar = ShowInTaskbar;
 
-      WindowState = WindowState.Minimized;
-      ShowInTaskbar = false;
+      //WindowState = WindowState.Minimized;
+      //ShowInTaskbar = false;
       BootstrapCompleted += (sender, args) =>
       {
-        WindowState = windowState;
-        ShowInTaskbar = showInTaskbar;
+        Dispatcher.Invoke(() =>
+        {
+          WindowState = windowState;
+          ShowInTaskbar = showInTaskbar;
+          Show();
+        });
         // this.NavigateToEntry(_configuration);
         CloseSplashscreen();
       };
     }
 
-    public new void Show()
-    {
-      base.Show();
-    }
+    public void SetWindowState(IPlanckWindow.WindowState state) => Dispatcher.Invoke(() =>
+      WindowState = (WindowState)state);
 
-    public new void Close()
-    {
-      base.Close();
-    }
+    public IPlanckWindow.WindowState GetWindowState() => Dispatcher.Invoke(() =>
+      (IPlanckWindow.WindowState)WindowState);
 
     public void ShowSplashscreen()
     {

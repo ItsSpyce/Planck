@@ -1,4 +1,5 @@
 ﻿using Planck.Controls;
+using System.Windows;
 
 namespace Planck.Commands
 {
@@ -39,9 +40,39 @@ namespace Planck.Commands
 
     }
 
-    public static void HandleNavigateRequest([Service] IPlanckWindow window, string to)
+    [CommandHandler("SET_WINDOW_STATE")]
+    public static void HandleSetWindowState([Service] IPlanckWindow window, string state)
     {
-
+      if (window is Controls.Wpf.PlanckWindow wpfWindow)
+      {
+        switch (state)
+        {
+          case "minimized":
+            wpfWindow.WindowState = WindowState.Minimized;
+            break;
+          case "maximized":
+            wpfWindow.WindowState = WindowState.Maximized;
+            break;
+          case "normal":
+            wpfWindow.WindowState = WindowState.Normal;
+            break;
+        }
+      }
+      else if (window is Controls.WinForms.PlanckWindow winFormsWindow)
+      {
+        switch (state)
+        {
+          case "minimzed":
+            winFormsWindow.WindowState = FormWindowState.Minimized;
+            break;
+          case "maximized":
+            winFormsWindow.WindowState = FormWindowState.Maximized;
+            break;
+          case "normal":
+            winFormsWindow.WindowState = FormWindowState.Normal;
+            break;
+        }
+      }
     }
   }
 }

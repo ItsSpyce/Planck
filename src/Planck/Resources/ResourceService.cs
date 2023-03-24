@@ -19,91 +19,7 @@ namespace Planck.Resources
   {
     protected readonly PlanckConfiguration _configuration;
 
-    protected const string _stdlib = """
-      if (typeof globalThis.planck === 'undefined') {
-        const planck = Object.create(null);
-    
-        let commandId = 0;
-    
-        const getNewCommandId = () => {
-          if (commandId === Number.MAX_SAFE_INTEGER) {
-            commandId = 0;
-          } else {
-            commandId++;
-          }
-          return commandId;
-        }
-
-        const sendMessage = (command, body = null) => {
-          const id = getNewCommandId();
-          const requestEventName = `${command}__request__${id}`;
-          const responseEventName = `${command}__response__${id}`;
-          return new Promise((resolve, reject) => {
-            const handler = (args) => {
-              try {
-                if (args.data.command !== responseEventName) {
-                  return;
-                }
-                resolve(args.data.body);
-              } catch (err) {
-                reject(err);
-              } finally {
-                window.chrome.webview.removeEventListener('message', handler);
-              }
-            };
-            window.chrome.webview.addEventListener('message', handler);
-            window.chrome.webview.postMessage({ command: requestEventName, body });
-            console.debug('Posted message', { command, body });
-          });
-        }
-    
-        Object.defineProperty(planck, 'sendMessage', {
-          get() {
-            return sendMessage;
-          },
-        });
-    
-        // remove context menu
-        window.addEventListener('contextmenu', window => window.preventDefault());
-    
-        const handlers = {
-          async navigate(args) {
-            const response = await fetch(window.location.origin + args.to.replace('\\', '__'));
-            const html = await response.text();
-            document.open();
-            document.write(html);
-            document.close();
-            updateTitle();
-          },
-        };
-    
-        window.chrome.webview.addEventListener('message', (args) => {
-          const handler = handlers[args.data.command];
-          if (handler) {
-            handler(args.data.body);
-          }
-        });
-    
-        const updateTitle = () => {
-          sendMessage('SET_WINDOW_TITLE', { title: document.title });
-        }
-    
-        setTimeout(() => {
-          const target = document.querySelector('title');
-          const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-              udpateTitle();
-            });
-          });
-          observer.observe(target, { childList: true });
-          if (document.title) {
-            updateTitle();
-          }
-        }, 500);
-        globalThis.planck = planck;
-      }
-
-    """;
+    private string _stdlib = "";
 
     protected InternalResourceService(IOptions<PlanckConfiguration> options)
     {
@@ -115,6 +31,14 @@ namespace Planck.Resources
       if (planck.CoreWebView2 == null)
       {
         throw new ArgumentNullException("CoreWebView2 is not initialized", nameof(planck.CoreWebView2));
+      }
+      if (string.IsNullOrEmpty(_stdlib))
+      {
+        // load stdlib
+        var asm = GetType().Assembly;
+        var resourceName = $"{asm.GetName().Name}.Scripts.core.js";
+        using var streamReader = new StreamReader(asm.GetManifestResourceStream(resourceName));
+        _stdlib = streamReader.ReadToEnd();
       }
 
       planck.CoreWebView2.NavigationStarting += (_, args) =>
@@ -131,7 +55,7 @@ namespace Planck.Resources
         }
       };
 
-      planck.CoreWebView2.NavigationCompleted += async (_, args) =>
+      planck.CoreWebView2.NavigationCompleted += (_, args) =>
       {
         if (!planck.HasCompletedBootstrap)
         {

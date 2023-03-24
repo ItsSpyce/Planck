@@ -1,4 +1,4 @@
-import { commandSender } from './commands';
+import { commandSender } from '~/stdlib/commands/index.js';
 
 export interface Application {
   setWindowTitle(title: string): Promise<void>;

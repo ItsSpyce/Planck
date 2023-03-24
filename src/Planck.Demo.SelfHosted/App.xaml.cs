@@ -13,7 +13,7 @@ namespace Planck.Demo.SelfHosted
 
     async void OnStartup(object sender, StartupEventArgs args)
     {
-      _planck = await PlanckApplication.StartAsync(ResourceMode.Embedded);
+      _planck = await PlanckApplication.StartAsync(ResourceMode.Local);
     }
   }
 }

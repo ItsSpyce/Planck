@@ -8,6 +8,7 @@ namespace Planck.Messages
   public interface IPlanckCommandMessage
   {
     string Command { get; }
+    int OperationId { get; }
     JsonElement? Body { get; }
   }
 
@@ -16,35 +17,10 @@ namespace Planck.Messages
     [JsonPropertyName("command")]
     public string Command { get; set; }
 
+    [JsonPropertyName("operationId")]
+    public int OperationId { get; set; }
+
     [JsonPropertyName("body")]
     public JsonElement? Body { get; set; }
-
-    internal static bool TryParse(string? webMessageAsJson, out PlanckCommandMessage message)
-    {
-      message = null;
-      if (string.IsNullOrEmpty(webMessageAsJson))
-      {
-        return false;
-      }
-      using var jsonStream = new MemoryStream(Encoding.UTF8.GetBytes(webMessageAsJson));
-      try
-      {
-        var deserialized = JsonSerializer.Deserialize<PlanckCommandMessage>(jsonStream);
-        if (deserialized is PlanckCommandMessage planckCommandMessage)
-        {
-          message = planckCommandMessage;
-          return true;
-        }
-        return false;
-      }
-      catch (JsonException)
-      {
-        return false;
-      }
-      catch (Exception)
-      {
-        throw;
-      }
-    }
   }
 }

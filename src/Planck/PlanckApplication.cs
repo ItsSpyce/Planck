@@ -18,11 +18,13 @@ namespace Planck
     {
       var host = Host.CreateDefaultBuilder(args);
 
-      host.UsePlanckConfiguration(new()
-      {
-        {"ProjectRoot", ProcessUtilities.GetProjectLocation() }
-      });
-      host.UsePlanck(resourceMode, configuration);
+      host
+        .UsePlanckConfiguration(new()
+        {
+          {"ProjectRoot", ProcessUtilities.GetProjectLocation() }
+        })
+        .UsePlanck(resourceMode, configuration)
+        .UsePlanckModules();
       return host;
     }
       

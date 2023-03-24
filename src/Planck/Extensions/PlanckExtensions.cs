@@ -4,53 +4,65 @@ using Planck.Commands.Internal;
 using Planck.Configuration;
 using Planck.Controls;
 using Planck.Messages;
+using Planck.Modules;
 using Planck.Resources;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace Planck.Extensions
 {
   internal static class PlanckExtensions
   {
-    private static readonly Regex _commandRequestRegex = new(@"^([A-Za-z0-9\._]+)__request__([0-9]+)$");
-    private static readonly Regex _commandResponseRegex = new(@"^([A-Za-z0-9\._]+)__response__([0-9]+)$");
-
-    public static void ConfigureCommands(this IPlanckWindow planckWindow, ICommandHandlerService commandHandler)
+    public static void ConfigureMessages(this IPlanckWindow planckWindow, IMessageService commandHandler)
     {
 
-      planckWindow.CoreWebView2.WebMessageReceived += async (_, args) =>
+      planckWindow.CoreWebView2.WebMessageReceived += (_, args) =>
       {
-        if (PlanckCommandMessage.TryParse(args.WebMessageAsJson, out var message))
+        var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(args.WebMessageAsJson));
+        if (JsonElement.TryParseValue(ref reader, out var asJson) && asJson != null)
         {
-          if (!_commandRequestRegex.IsMatch(message.Command) && !_commandResponseRegex.IsMatch(message.Command))
-          {
-            return;
-          }
-          var (commandName, commandId) = GetCommandParts(message.Command);
-          if (message.Command.Contains("__request__"))
-          {
-            var result = await commandHandler.InvokeAsync(commandName, message.Body);
-            var resultAsJson = JsonSerializer.SerializeToElement(result);
-            var response = new PlanckCommandMessage
-            {
-              Command = $"{commandName}__response__${commandId}",
-              Body = resultAsJson,
-            };
-            var responseBytes = JsonSerializer.SerializeToUtf8Bytes(response);
-            planckWindow.CoreWebView2.PostWebMessageAsJson(Encoding.UTF8.GetString(responseBytes));
-          }
-          else if (message.Command.Contains("__response__"))
-          {
-            await commandHandler.InvokeAsync(commandName, message.Body);
-          }
-          else
-          {
-            // shouldn't happen, ignore
-          }
+          commandHandler.HandleMessageAsync((JsonElement)asJson);
         }
+        //await commandHandler.HandleMessageAsync(asJson);
+        //if (PlanckCommandMessage.TryParse(args.WebMessageAsJson, out var message))
+        //{
+        //  if (!_commandRequestRegex.IsMatch(message.Command) && !_commandResponseRegex.IsMatch(message.Command))
+        //  {
+        //    return;
+        //  }
+        //  var (commandName, commandId) = GetCommandParts(message.Command);
+        //  if (message.Command.Contains("__request__"))
+        //  {
+        //    var result = await commandHandler.InvokeAsync(commandName, message.Body);
+        //    var resultAsJson = JsonSerializer.SerializeToElement(result);
+        //    var response = new PlanckCommandMessage
+        //    {
+        //      Command = $"{commandName}__response__${commandId}",
+        //      Body = resultAsJson,
+        //    };
+        //    var responseBytes = JsonSerializer.SerializeToUtf8Bytes(response);
+        //    planckWindow.CoreWebView2.PostWebMessageAsJson(Encoding.UTF8.GetString(responseBytes));
+        //  }
+        //  else if (message.Command.Contains("__response__"))
+        //  {
+        //    await commandHandler.InvokeAsync(commandName, message.Body);
+        //  }
+        //  else
+        //  {
+        //    // shouldn't happen, ignore
+        //  }
+        //}
       };
+    }
+
+    public static void ConfigureModules(this IPlanckWindow planckWindow, IModuleService modules)
+    {
+      modules.Initialize();
+      planckWindow.CoreWebView2.AddHostObjectToScript("__modules__", new ModuleBridge(modules));
     }
 
     public static void ConfigureResources(this IPlanckWindow planckWindow, IResourceService resources, string root)
@@ -98,14 +110,6 @@ namespace Planck.Extensions
 #else
       planckWindow.CoreWebView2.PostWebMessage(new NavigateCommand { To = config.Entry });
 #endif
-    }
-
-    static (string commandName, string commandId) GetCommandParts(string fullCommand)
-    {
-      var commandSections = _commandRequestRegex.Matches(fullCommand)[0];
-      var commandName = commandSections.Groups[1]?.Value!;
-      var commandId = commandSections.Groups[2]?.Value!;
-      return (commandName, commandId);
     }
   }
 }

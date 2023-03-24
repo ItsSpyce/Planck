@@ -1,0 +1,46 @@
+{
+  "name": "@planck/app",
+  "description": "Planck app library",
+  "version": "0.0.1",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "types/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "type": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "lib",
+    "esm",
+    "readme.md",
+    "tsconfig.json",
+    "types"
+  ],
+  "scripts": {
+    
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^24.0.1",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@rollup/plugin-typescript": "^11.0.0",
+    "dts-bundle-generator": "^7.2.0",
+    "esbuild": "^0.17.11",
+    "gh-pages": "^5.0.0",
+    "npm-run-all": "^4.1.5",
+    "rimraf": "^4.3.1",
+    "rollup": "^3.18.0",
+    "rollup-plugin-esbuild": "^5.0.0",
+    "rollup-plugin-peer-deps-external": "^2.2.4",
+    "tsc-alias": "^1.8.2",
+    "tslib": "^2.5.0",
+    "typescript": "^4.9.5",
+    "vite": "^4.1.4",
+    "vite-tsconfig-paths": "^4.0.5",
+    "vitest": "^0.29.2"
+  }
+}

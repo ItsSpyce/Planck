@@ -9,5 +9,9 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script type="module">
+      window.app = await planck.import('app');
+      window.fs = await planck.import('fs');
+    </script>
   </body>
 </html>

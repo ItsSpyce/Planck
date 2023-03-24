@@ -1,10 +1,10 @@
 ﻿using Microsoft.Web.WebView2.Core;
 using Planck.Commands;
+using Planck.IO;
 using Planck.Resources;
 using Planck.Utilities;
 using System.IO;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -21,6 +21,38 @@ namespace Planck.Extensions
     const string _defaultHeaders = $"""
       Origin: {IResourceService.AppUrl}
       """;
+
+    public static Task<string> ExecuteScriptAsync(this CoreWebView2 coreWebView2, string filename, Assembly assembly)
+    {
+      var @namespace = assembly.GetName().Name!;
+      return ExecuteScriptAsync(coreWebView2, filename, assembly, @namespace);
+    }
+
+    public static async Task<string> ExecuteScriptAsync(
+      this CoreWebView2 coreWebView2,
+      string filename,
+      Assembly assembly,
+      string @namespace)
+    {
+      var script = await ReadEmbeddedScriptAsync($"{@namespace}.{filename}", assembly);
+      return await coreWebView2.ExecuteScriptAsync(script);
+    }
+
+    public static Task<string> AddScriptToExecuteOnDocumentCreatedAsync(this CoreWebView2 coreWebView2, string filename, Assembly assembly)
+    {
+      var @namespace = assembly.GetName().Name!;
+      return AddScriptToExecuteOnDocumentCreatedAsync(coreWebView2, filename, assembly, @namespace);
+    }
+
+    public static async Task<string> AddScriptToExecuteOnDocumentCreatedAsync(
+      this CoreWebView2 coreWebView2,
+      string filename,
+      Assembly assembly,
+      string @namespace)
+    {
+      var script = await ReadEmbeddedScriptAsync($"{@namespace}.{filename}", assembly);
+      return await coreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(script);
+    }
 
     public static void PostWebMessage<T>(this CoreWebView2 coreWebView2, T command) where T : struct
     {
@@ -59,5 +91,17 @@ namespace Planck.Extensions
     static string GetHeadersFromDictionary(Dictionary<string, string> headers) => string.Join(
       Environment.NewLine,
       headers.Select((kvp) => $"{kvp.Key}: {kvp.Value}"));
+
+    static async Task<string> ReadEmbeddedScriptAsync(string path, Assembly assembly)
+    {
+      var resx = assembly.GetManifestResourceStream(path);
+      if (resx == null)
+      {
+        throw new FileNotFoundException("Could not locate script. If you're calling without the namespace parameter, ensure that the project namespace is the same as the assembly name", path);
+      }
+      using var streamReader = new StreamReader(resx);
+      var script = await streamReader.ReadToEndAsync();
+      return script;
+    }
   }
 }

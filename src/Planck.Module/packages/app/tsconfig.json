@@ -14,7 +14,10 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "sourceMap": true,
-    "types": ["vite/client", "vitest/globals"]
+    "types": ["vite/client", "vitest/globals"],
+    "paths": {
+      "~/*": ["*"]
+    }
   },
   "exclude": [
     "esm/*",

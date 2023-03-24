@@ -64,5 +64,15 @@ namespace Planck.Controls.WinForms
     {
       throw new NotImplementedException();
     }
+
+    public void SetWindowState(IPlanckWindow.WindowState state)
+    {
+      throw new NotImplementedException();
+    }
+
+    public IPlanckWindow.WindowState GetWindowState()
+    {
+      throw new NotImplementedException();
+    }
   }
 }

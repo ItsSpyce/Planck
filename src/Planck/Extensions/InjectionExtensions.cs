@@ -8,6 +8,9 @@ using Planck.Configuration;
 using Planck.Controls;
 using Planck.HttpClients;
 using Planck.MacroConfig.Extensions;
+using Planck.Messages;
+using Planck.Modules;
+using Planck.Modules.Internal;
 using Planck.Resources;
 using System.IO;
 using System.Reflection;
@@ -45,10 +48,6 @@ namespace Planck.Extensions
               services.AddSingleton<IResourceService, EmbeddedResourceService>();
               break;
           }
-
-          // add environment
-          services
-            .AddSingleton(new CoreWebView2EnvironmentOptions("--disable-web-security"));
 
           // Add WPF controls
           services
@@ -98,18 +97,29 @@ namespace Planck.Extensions
         .ConfigureAppConfiguration(config =>
           config.BindMacros(macros));
 
+    public static IHostBuilder UsePlanckModules(this IHostBuilder host) =>
+      host.ConfigureServices((services) =>
+        services
+          .AddSingleton<IModuleService, ModuleService>(serviceProvider =>
+          {
+            var moduleService = new ModuleService(services);
+            moduleService
+              .AddModule<FileSystemModule>("fs")
+              .AddModule<ClipboardModule>("clipboard")
+              .AddModule<AppModule>("app");
+            return moduleService;
+          }));
+
     public static IServiceCollection AddHandlers<T>(this IServiceCollection services)
     {
       var methods = typeof(T).GetMethods();
-      // idea here is to register an ICommandHandlerService<T> that is initialized
-      // with the methods to register
-      services.AddSingleton<ICommandHandlerService, CommandHandlerService>((services) =>
+      services.AddSingleton<IMessageService, MessageService>((services) =>
       {
-        var commandHandlerService = new CommandHandlerService(
+        var messageService = new MessageService(
           services.GetService<IServiceProvider>()!,
-          services.GetService<ILogger<CommandHandlerService>>()!);
-        commandHandlerService.BuildFromType<T>();
-        return commandHandlerService;
+          services.GetService<ILogger<MessageService>>()!);
+        return messageService
+          .AddHandlersFromType<T>();
       });
 
       return services;

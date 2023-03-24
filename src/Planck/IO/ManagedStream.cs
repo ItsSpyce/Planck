@@ -1,6 +1,6 @@
 ﻿using System.IO;
 
-namespace Planck.Utilities
+namespace Planck.IO
 {
   internal class ManagedStream : Stream
   {
@@ -40,10 +40,10 @@ namespace Planck.Utilities
           _stream.Dispose();
         }
       }
-      catch (Exception ex)
+      catch
       {
         _stream.Dispose();
-        throw ex;
+        throw;
       }
       return read;
     }
