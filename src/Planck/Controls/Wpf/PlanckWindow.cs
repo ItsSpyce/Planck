@@ -129,7 +129,7 @@ namespace Planck.Controls.Wpf
         this.ConfigureResources(_resourceService, _configuration.DevUrl ?? Directory.GetCurrentDirectory());
         this.ConfigureMessages(_messageService);
         this.ConfigureModules(_moduleService);
-        CoreWebView2.AddHostObjectToScript("clipboard", new ClipboardModule(this));
+        // CoreWebView2.AddHostObjectToScript("clipboard", new ClipboardModule(this));
 
         // WebView.NavigateToString(Constants.StartPageContent);
         WebView.Source = new Uri(IResourceService.AppUrl);

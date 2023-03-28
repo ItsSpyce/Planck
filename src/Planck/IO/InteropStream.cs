@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Planck.IO
 {
-  public class InteropStream : HostObject, IDisposable
+  public class InteropStream : Stream, IDisposable
   {
     const int BUFSIZE = 1024;
 
@@ -19,15 +19,27 @@ namespace Planck.IO
       _stream = baseStream;
     }
 
+    public override bool CanRead => _stream.CanRead;
+
+    public override bool CanSeek => _stream.CanSeek;
+
+    public override bool CanWrite => false;
+
+    public override long Length => _stream.Length;
+
+    public override long Position
+    {
+      get => _stream.Position;
+      set => _stream.Position = value;
+    }
+
     public void Dispose()
     {
       GC.SuppressFinalize(this);
       _stream.Dispose();
     }
 
-    public long GetLength() => _stream.Length;
-    public long GetPosition() => _stream.Position;
-    public long GetRemaining() => _stream.Length - _stream.Position;
+    public override void Flush() => _stream.Flush();
 
     public byte[] Read()
     {
@@ -42,6 +54,11 @@ namespace Planck.IO
       return buffer.Memory.ToArray();
     }
 
+    public override int Read(byte[] buffer, int offset, int count)
+    {
+      throw new NotImplementedException();
+    }
+
     public Task<byte[]> ReadAsync()
     {
       // we can cast to int because it'll just choose BUFSIZE if it's a long
@@ -54,6 +71,15 @@ namespace Planck.IO
       var buffer = _memPool.Rent(count);
       await _stream.ReadAsync(buffer.Memory);
       return buffer.Memory.ToArray();
+    }
+
+    public override long Seek(long offset, SeekOrigin origin) => _stream.Seek(offset, origin);
+
+    public override void SetLength(long value) => _stream.SetLength(value);
+
+    public override void Write(byte[] buffer, int offset, int count)
+    {
+      throw new NotImplementedException();
     }
   }
 }

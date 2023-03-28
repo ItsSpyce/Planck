@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using Planck.Commands;
+using Planck.Utils;
 using System;
+using System.CodeDom;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
@@ -67,49 +69,40 @@ namespace Planck.Messages
       return this;
     }
 
-    public async Task HandleMessageAsync(JsonElement message)
+    public async Task<(int, IEnumerable<object?>)> HandleMessageAsync(JsonElement message)
     {
       if (!_traceThread.IsAlive)
       {
         _traceThread.Start();
       }
-      var deserialized = message.Deserialize<PlanckCommandMessage>();
+      var deserialized = message.Deserialize<PlanckMessage>();
+      var resultList = new List<object?>();
       if (deserialized != null && _messageTypeMap.TryGetValue(deserialized.Command, out var messageMethods))
       {
         var now = DateTime.Now;
         var body = deserialized.Body ?? new();
-        var taskList = new List<Task>();
         foreach (var method in messageMethods)
         {
-          var parameters = method.GetParameters();
-          var methodArgs = parameters.Select(p =>
+          var methodArgs = InteropConverter.ConvertJsonToMethodArgs(body, method, _serviceProvider.GetService);
+          var result = method.Invoke(null, methodArgs);
+          if (result is Task<object> awaitableWithReturn)
           {
-            if (p.GetCustomAttribute<ServiceAttribute>() != null)
-            {
-              return _serviceProvider.GetService(p.ParameterType);
-            }
-            if (body.TryGetProperty(p.Name!, out var argValue))
-            {
-              return JsonSerializer.Deserialize(argValue, p.ParameterType);
-            }
-            return null;
-          });
-          var result = method.Invoke(null, methodArgs.ToArray());
-          if (result is Task awaitable)
-          {
-            taskList.Add(awaitable);
+            var awaited = await awaitableWithReturn;
+            resultList.Add(awaited);
           }
-        }
-        if (taskList.Count > 0)
-        {
-          await Task.WhenAll(taskList);
+          else
+          {
+            resultList.Add(result);
+          }
         }
         _timingTraceQueue.Enqueue(new()
         {
           Name = deserialized.Command,
           TimeToExecuteMs = (DateTime.Now - now).TotalMilliseconds
         });
+        return (deserialized.OperationId, resultList);
       }
+      throw new Exception("Failed to deserialize message");
     }
 
     void ProcessTraceQueue()

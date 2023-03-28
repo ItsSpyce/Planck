@@ -1,4 +1,5 @@
 ﻿using Microsoft.Web.WebView2.Core;
+using Newtonsoft.Json.Linq;
 using Planck.Commands;
 using Planck.Commands.Internal;
 using Planck.Configuration;
@@ -8,6 +9,7 @@ using Planck.Modules;
 using Planck.Resources;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -19,43 +21,17 @@ namespace Planck.Extensions
   {
     public static void ConfigureMessages(this IPlanckWindow planckWindow, IMessageService commandHandler)
     {
-
       planckWindow.CoreWebView2.WebMessageReceived += (_, args) =>
       {
         var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(args.WebMessageAsJson));
         if (JsonElement.TryParseValue(ref reader, out var asJson) && asJson != null)
         {
-          commandHandler.HandleMessageAsync((JsonElement)asJson);
+          var (operationId, results) = commandHandler.HandleMessageAsync((JsonElement)asJson).Result;
+          var jarray = JArray.FromObject(results.Where(r => r != null));
+          planckWindow.CoreWebView2.PostWebMessageAsJson($$"""
+            { "operationId": {{operationId}}, "body": {{jarray}} }
+            """);
         }
-        //await commandHandler.HandleMessageAsync(asJson);
-        //if (PlanckCommandMessage.TryParse(args.WebMessageAsJson, out var message))
-        //{
-        //  if (!_commandRequestRegex.IsMatch(message.Command) && !_commandResponseRegex.IsMatch(message.Command))
-        //  {
-        //    return;
-        //  }
-        //  var (commandName, commandId) = GetCommandParts(message.Command);
-        //  if (message.Command.Contains("__request__"))
-        //  {
-        //    var result = await commandHandler.InvokeAsync(commandName, message.Body);
-        //    var resultAsJson = JsonSerializer.SerializeToElement(result);
-        //    var response = new PlanckCommandMessage
-        //    {
-        //      Command = $"{commandName}__response__${commandId}",
-        //      Body = resultAsJson,
-        //    };
-        //    var responseBytes = JsonSerializer.SerializeToUtf8Bytes(response);
-        //    planckWindow.CoreWebView2.PostWebMessageAsJson(Encoding.UTF8.GetString(responseBytes));
-        //  }
-        //  else if (message.Command.Contains("__response__"))
-        //  {
-        //    await commandHandler.InvokeAsync(commandName, message.Body);
-        //  }
-        //  else
-        //  {
-        //    // shouldn't happen, ignore
-        //  }
-        //}
       };
     }
 

@@ -10,10 +10,14 @@ namespace Planck.Modules.Internal
 {
   public class FileSystemModule : Module
   {
-    public FileSystemModule(IPlanckWindow planck) : base(planck)
+    public FileSystemModule(IPlanckWindow planck, IServiceProvider services) : base(planck, services)
     {
     }
 
+    [ExportProperty]
+    public string DirectorySeparator => Path.DirectorySeparatorChar.ToString();
+
+    [ExportMethod]
     public InteropStream? ReadFile(string path)
     {
       if (!File.Exists(path))
@@ -27,7 +31,5 @@ namespace Planck.Modules.Internal
       }
       return new InteropStream(stream);
     }
-
-    public string GetDirectorySeparator() => Path.DirectorySeparatorChar.ToString();
   }
 }

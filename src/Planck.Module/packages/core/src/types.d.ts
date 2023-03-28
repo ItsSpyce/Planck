@@ -17,5 +17,9 @@ export interface PlanckMessage<T = unknown> {
   command: string;
   operationId: number;
   body?: T;
-  completed?: boolean;
+}
+
+export interface PlanckResponse<T = unknown> {
+  operationId: number;
+  body: T[];
 }

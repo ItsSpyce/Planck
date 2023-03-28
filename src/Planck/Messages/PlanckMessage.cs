@@ -5,14 +5,15 @@ using System.Text.Json.Serialization;
 
 namespace Planck.Messages
 {
-  public interface IPlanckCommandMessage
+
+  public interface IPlanckMessage
   {
     string Command { get; }
     int OperationId { get; }
     JsonElement? Body { get; }
   }
 
-  internal class PlanckCommandMessage : IPlanckCommandMessage
+  internal class PlanckMessage : IPlanckMessage
   {
     [JsonPropertyName("command")]
     public string Command { get; set; }

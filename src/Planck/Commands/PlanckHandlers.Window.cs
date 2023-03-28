@@ -1,9 +1,12 @@
 ﻿using Planck.Controls;
+using System;
+using System.Collections.Generic;
+using System.Text;
 using System.Windows;
 
 namespace Planck.Commands
 {
-  internal class PlanckHandlers
+  internal partial class PlanckHandlers
   {
     [CommandHandler("SET_WINDOW_TITLE")]
     public static void HandleSetWindowTitle([Service] IPlanckWindow window, string title)

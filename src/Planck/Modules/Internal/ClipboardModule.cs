@@ -9,8 +9,9 @@ namespace Planck.Modules.Internal
 {
   public class ClipboardModule : Module
   {
-    public ClipboardModule(IPlanckWindow planckWindow) : base(planckWindow) { }
+    public ClipboardModule(IPlanckWindow planckWindow, IServiceProvider services) : base(planckWindow, services) { }
 
+    [ExportMethod]
     public string WriteText(string text)
     {
       System.Windows.Clipboard.SetText(text);
@@ -18,6 +19,7 @@ namespace Planck.Modules.Internal
       return text;
     }
 
+    [ExportMethod]
     public string ReadText() => System.Windows.Clipboard.GetText();
   }
 }

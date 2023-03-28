@@ -14,8 +14,12 @@ namespace Planck.Modules
 
     public object GetModule(string name)
     {
-      var module = _moduleService.GetModule(name);
-      return module;
+      var module = _moduleService.GetModule(name) as Module;
+      if (module == null)
+      {
+        throw new ArgumentException("No module found matching", nameof(name));
+      }
+      return module.GetModuleExports();
       //var publicMethods = module.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
       //  .Where(m => m.GetCustomAttribute<ExportMethodAttribute>() != null)
       //  .Select(m => $"{m.GetCustomAttribute<ExportMethodAttribute>()!.Name ?? m.Name}={m.ReturnType.Name}");
