@@ -9,15 +9,20 @@ interface Chrome {
 }
 
 interface WebView {
-  addEventListener(
+  addEventListener<T>(
     event: WebViewEvent,
-    handler: (arg: MessageEventArgs) => void
+    handler: (arg: MessageEventArgs<T>) => void
   ): void;
-  removeEventListener(
+  removeEventListener<T>(
     name: string,
-    handler: (arg: MessageEventArgs) => void
+    handler: (arg: MessageEventArgs<T>) => void
   ): void;
-  postMessage(message: any): void;
+  postMessage(message: string | object): void;
+  hostObjects: HostObjects;
+}
+
+interface HostObjects {
+  //
 }
 
 interface MessageEventArgs<T = unknown> {
@@ -69,4 +74,7 @@ interface Planck {
   setWindowState(state: 'minimized' | 'maximized' | 'normal'): Promise<void>;
 }
 
+/**
+ * Exposes the core standard library for Planck
+ */
 declare const planck: Planck;

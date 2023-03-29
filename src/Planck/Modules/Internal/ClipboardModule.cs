@@ -11,7 +11,7 @@ namespace Planck.Modules.Internal
   {
     public ClipboardModule(IPlanckWindow planckWindow, IServiceProvider services) : base(planckWindow, services) { }
 
-    [ExportMethod]
+    [ExportMethod("writeText")]
     public string WriteText(string text)
     {
       System.Windows.Clipboard.SetText(text);
@@ -19,7 +19,7 @@ namespace Planck.Modules.Internal
       return text;
     }
 
-    [ExportMethod]
+    [ExportMethod("readText")]
     public string ReadText() => System.Windows.Clipboard.GetText();
   }
 }

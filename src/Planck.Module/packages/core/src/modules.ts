@@ -32,13 +32,13 @@ enum ModuleExportType {
   stream = 'stream',
   array = 'array',
   void = 'void',
-  fn_string = `${MODULE_FN_IDENTIFIER}:${ModuleExportType.string}`,
-  fn_boolean = `${MODULE_FN_IDENTIFIER}:${ModuleExportType.boolean}`,
-  fn_number = `${MODULE_FN_IDENTIFIER}:${ModuleExportType.number}`,
-  fn_object = `${MODULE_FN_IDENTIFIER}:${ModuleExportType.object}`,
-  fn_stream = `${MODULE_FN_IDENTIFIER}:${ModuleExportType.stream}`,
-  fn_array = `${MODULE_FN_IDENTIFIER}:${ModuleExportType.array}`,
-  fn_void = `${MODULE_FN_IDENTIFIER}:${ModuleExportType.void}`,
+  fn_string = 'fn:string',
+  fn_boolean = 'fn:boolean',
+  fn_number = 'fn:number',
+  fn_object = 'fn:object',
+  fn_stream = 'fn:stream',
+  fn_array = 'fn:array',
+  fn_void = 'fn:void',
 }
 
 // type ModuleExportType =

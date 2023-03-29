@@ -21,10 +21,9 @@
     "tsconfig.json",
     "types"
   ],
-  "scripts": {
-    
-  },
+  "scripts": {},
   "devDependencies": {
+    "@planck/types": "^0.0.1",
     "@rollup/plugin-commonjs": "^24.0.1",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^11.0.0",

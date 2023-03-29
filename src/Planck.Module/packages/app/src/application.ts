@@ -1,5 +1,3 @@
-import { commandSender } from '~/stdlib/commands/index.js';
-
 export interface Application {
   setWindowTitle(title: string): Promise<void>;
   setWindowSize(width: number, height: number): Promise<void>;
@@ -29,47 +27,43 @@ const defaultOpts: ApplicationOpts = {
 };
 
 export function application(opts: Partial<ApplicationOpts> = {}): Application {
-  const commandSenderInstance = commandSender();
-
   return {
     async start() {
+      const app = await planck.import('app');
       const args = { ...defaultOpts, ...opts };
       // start C# process
     },
     async setWindowTitle(title) {
       try {
-        await commandSenderInstance.sendMessage('SET_WINDOW_TITLE', { title });
+        await planck.setTitle(title);
       } catch (err) {
         //
       }
     },
     async setWindowSize(width, height) {
       try {
-        await commandSenderInstance.sendMessage('SET_WINDOW_SIZE', {
-          width,
-          height,
-        });
+        await planck.setWindowSize(width, height);
       } catch (err) {
         //
       }
     },
     async hideWindow() {
       try {
-        await commandSenderInstance.sendMessage('HIDE_WINDOW');
+        await planck.hideWindow();
       } catch (err) {
         //
       }
     },
     async showWindow() {
       try {
-        await commandSenderInstance.sendMessage('SHOW_WINDOW');
+        await planck.showWindow();
       } catch (err) {
         //
       }
     },
     async requestShutdown() {
       try {
-        await commandSenderInstance.sendMessage('REQUEST_SHUTDOWN');
+        await planck.sendMessage('REQUEST_SHUTDOWN');
       } catch (err) {
         //
       }
