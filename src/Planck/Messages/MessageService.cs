@@ -50,7 +50,7 @@ namespace Planck.Messages
           continue;
         }
         var commandHandlerAttr = method.GetCustomAttribute<CommandHandlerAttribute>();
-        if (commandHandlerAttr == null)
+        if (commandHandlerAttr is null)
         {
           continue;
         }
@@ -77,7 +77,7 @@ namespace Planck.Messages
       }
       var deserialized = message.Deserialize<PlanckMessage>();
       var resultList = new List<object?>();
-      if (deserialized != null && _messageTypeMap.TryGetValue(deserialized.Command, out var messageMethods))
+      if (deserialized is not null && _messageTypeMap.TryGetValue(deserialized.Command, out var messageMethods))
       {
         var now = DateTime.Now;
         var body = deserialized.Body ?? new();

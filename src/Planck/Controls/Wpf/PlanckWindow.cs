@@ -103,7 +103,10 @@ namespace Planck.Controls.Wpf
       IModuleService moduleService,
       IOptions<PlanckConfiguration> configuration)
     {
-      Background = System.Windows.Media.Brushes.Transparent;
+      AllowsTransparency = true;
+      WindowStyle = WindowStyle.None;
+      IsHitTestVisible = true;
+      Background = null;
       _configuration = configuration.Value;
 
       if (SslOnly == default)
@@ -119,7 +122,14 @@ namespace Planck.Controls.Wpf
       _splashscreen = splashscreen;
       _messageService = messageService;
       _moduleService = moduleService;
-      Content = new WebView2();
+      Content = new WebView2
+      {
+        DefaultBackgroundColor = Color.Transparent,
+        CreationProperties = new()
+        {
+          // UserDataFolder = new Uri
+        }
+      };
       Loaded += async (_, _) =>
       {
         Hide();

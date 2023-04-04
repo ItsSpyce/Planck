@@ -9,7 +9,7 @@ namespace Planck.Demo.SelfHosted
   /// </summary>
   public partial class App : Application
   {
-    IPlanckWindow _planck;
+    IPlanckWindow? _planck;
 
     async void OnStartup(object sender, StartupEventArgs args)
     {

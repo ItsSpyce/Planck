@@ -1,5 +1,8 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using Planck.Controls;
+using Planck.IO;
+using Planck.TypeConverter;
 using Planck.Utils;
 using System;
 using System.Collections;
@@ -18,6 +21,8 @@ namespace Planck.Modules
   /// <remarks>Module functionality is based on RPC and are ESM module based (no "default" export, only named).</remarks>
   public abstract class Module : HostObject
   {
+    delegate IPropTypeConverter GetPropTypeConverter();
+
     public struct ExportDefinition
     {
       [JsonProperty("name")]
@@ -34,6 +39,7 @@ namespace Planck.Modules
     protected readonly IServiceProvider Services;
     readonly Dictionary<string, MethodInfo> _moduleMethods;
     readonly Dictionary<string, PropertyInfo> _moduleProperties;
+    readonly Dictionary<string, GetPropTypeConverter> _typeConverters;
 
     protected Module(IPlanckWindow planckWindow, IServiceProvider services)
     {
@@ -45,6 +51,26 @@ namespace Planck.Modules
       _moduleProperties = GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
         .Where(p => p.GetCustomAttribute<ExportPropertyAttribute>() != null)
         .ToDictionary(p => p.GetCustomAttribute<ExportPropertyAttribute>()!.Name ?? p.Name, p => p);
+      _typeConverters = new();
+
+      var converters = services.GetServices<IPropTypeConverter>();
+
+      foreach (var (methodName, methodInfo) in _moduleMethods)
+      {
+        var converter = converters.SingleOrDefault(c => c.CanConvert(methodInfo.ReturnType));
+        if (converter is not null)
+        {
+          _typeConverters.Add(methodName, () => (IPropTypeConverter) services.GetService(converter.GetType())!);
+        }
+      }
+      foreach (var (propName, propInfo) in _moduleProperties)
+      {
+        var converter = converters.SingleOrDefault(c => c.CanConvert(propInfo.PropertyType));
+        if (converter is not null)
+        {
+          _typeConverters.Add(propName, () => (IPropTypeConverter)services.GetService(converter.GetType())!);
+        }
+      }
     }
 
     public IEnumerable<ExportDefinition> GetModuleExports()
@@ -61,8 +87,8 @@ namespace Planck.Modules
       {
         Name = kvp.Key,
         ReturnType = GetExportReturnType(kvp.Value.PropertyType, false),
-        HasGetter = kvp.Value.GetGetMethod() != null,
-        HasSetter = kvp.Value.GetSetMethod() != null,
+        HasGetter = kvp.Value.GetGetMethod() is not null,
+        HasSetter = kvp.Value.GetSetMethod() is not null,
       });
       return publicMethods.Concat(publicProperties);
     }
@@ -71,6 +97,11 @@ namespace Planck.Modules
     {
       if (_moduleProperties.TryGetValue(prop, out var propInfo))
       {
+        if (_typeConverters.TryGetValue(prop, out var getConverter))
+        {
+          var converter = getConverter();
+          return converter.Convert(propInfo.GetValue(this));
+        }
         return propInfo.GetValue(this);
       }
       return null;
@@ -78,22 +109,44 @@ namespace Planck.Modules
 
     public async Task<object?> InvokeMethodAsync(string method, JsonArray jsonArgs)
     {
+      // this method is unnecessarily complicated but it's all for the sake of async
       if (_moduleMethods.TryGetValue(method, out var methodInfo))
       {
         var args = InteropConverter.ConvertJsonToMethodArgs(jsonArgs, methodInfo, Services.GetService);
-        var pureResult = methodInfo.Invoke(this, args);
-        if (pureResult is Task awaitable)
+        var result = methodInfo.Invoke(this, args);
+        _typeConverters.TryGetValue(method, out var getConverter);
+        var converter = getConverter is not null ? getConverter() : null;
+        
+        if (result is Task<object?> awaitableWithResult)
         {
-          await awaitable;
-          return null;
+          result = await awaitableWithResult;
         }
-        if (pureResult is Task<object?> awaitableWithResult)
+        if (converter is not null)
         {
-          return await awaitableWithResult;
+          try
+          {
+            return await converter.ConvertAsync(result);
+          }
+          catch (NotImplementedException)
+          {
+            return converter.Convert(result);
+          }
         }
-        return pureResult;
+        return result;
       }
       return null;
+    }
+
+    static Dictionary<string, object> GetFieldProperties<T>(T value)
+    {
+      var properties = new Dictionary<string, object>();
+
+      if (value is Stream stream)
+      {
+        properties.Add("Length", stream.Length);
+      }
+
+      return properties;
     }
 
     static string GetExportReturnType(Type type, bool isMethod)

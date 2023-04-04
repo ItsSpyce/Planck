@@ -1,10 +1,6 @@
-import {
-  postMessageAndWait,
-  createOperationIdFactory,
-  postMessageAndWaitSync,
-} from 'utils.js';
+import { InteropStream } from 'stream.js';
+import { sendMessage, sendMessageSync } from 'messages.js';
 
-const operationIdFactory = createOperationIdFactory();
 const moduleMap = Object.create(null) as Record<
   string,
   Awaited<ReturnType<typeof createProxy>>
@@ -14,9 +10,13 @@ export async function _import<TModule>(id: string) {
   if (id in moduleMap) {
     return moduleMap[id] as TModule;
   }
-  const [moduleConfiguration] = await postMessageAndWait<ExportDefinition[]>(
-    { command: 'LOAD_MODULE', body: { id } },
-    operationIdFactory.next()
+  // const [moduleConfiguration] = await postMessageAndWait<ExportDefinition[]>(
+  //   { command: 'LOAD_MODULE', body: { id } },
+  //   operationIdFactory.next()
+  // );
+  const moduleConfiguration = await sendMessage<ExportDefinition[]>(
+    'LOAD_MODULE',
+    { id }
   );
   const proxy = await createProxy(id, moduleConfiguration);
   return proxy;
@@ -41,23 +41,6 @@ enum ModuleExportType {
   fn_void = 'fn:void',
 }
 
-// type ModuleExportType =
-//   | 'string'
-//   | 'boolean'
-//   | 'number'
-//   | 'object'
-//   | 'stream'
-//   | 'array'
-//   | 'void'
-//   | `fn:${
-//       | 'string'
-//       | 'boolean'
-//       | 'number'
-//       | 'object'
-//       | 'stream'
-//       | 'array'
-//       | 'void'}`;
-
 type ExportDefinition = {
   name: string;
   returnType: ModuleExportType;
@@ -77,6 +60,10 @@ async function createProxy(id: string, exportDefinitions: ExportDefinition[]) {
   );
   return new Proxy(obj, {
     get(target, prop, receiver) {
+      // we should only be setting the value when the type is handled in a special case
+      if (typeof target[prop] !== 'undefined') {
+        return target[prop];
+      }
       if (typeof prop === 'symbol') {
         return Reflect.get(target, prop, receiver);
       }
@@ -86,30 +73,51 @@ async function createProxy(id: string, exportDefinitions: ExportDefinition[]) {
       }
       if (definition.hasGetter) {
         if (definition.returnType.startsWith(MODULE_FN_IDENTIFIER)) {
+          return async function (...args: any[]) {
+            const result = await sendMessage('INVOKE_MODULE_METHOD', {
+              id,
+              method: prop,
+              args,
+            });
+            switch (definition.returnType) {
+              case ModuleExportType.fn_stream:
+                return new InteropStream(result);
+              default:
+                return result;
+            }
+          };
+        } else {
+          const returnValue = sendMessageSync('GET_MODULE_PROP', {
+            prop,
+            id,
+            args: {},
+          });
           switch (definition.returnType) {
-            case ModuleExportType.fn_stream:
-              // TODO:
-              throw new Error('Not implemented');
+            case ModuleExportType.stream:
+              // if it's a prop, it gets memoized in the source object
+              return new InteropStream(returnValue);
             default:
-              return async function (...args: any[]) {
-                const [response] = await postMessageAndWait(
-                  {
-                    command: 'INVOKE_MODULE_METHOD',
-                    body: { id, method: prop, args },
-                  },
-                  operationIdFactory.next()
-                );
-                return response;
-              };
+              return returnValue;
           }
         }
-        return postMessageAndWaitSync(
-          { command: 'GET_MODULE_PROP', body: { prop, id, args: {} } },
-          operationIdFactory.next()
-        );
       }
     },
-    deleteProperty() {
+    set(target, prop, value, _) {
+      if (typeof prop === 'string' && typeof propMap[prop] !== 'undefined') {
+        throw 'Cannot set the value on a remote module property';
+      }
+      return (target[prop] = value);
+    },
+    deleteProperty(target, p) {
+      if (typeof p === 'string' && typeof propMap[p] !== 'undefined') {
+        const prop = propMap[p];
+        // we need to close the stream before deletion
+        if (prop.returnType === ModuleExportType.stream) {
+          const stream = target[p] as InteropStream;
+          stream.close();
+          return delete target[p];
+        }
+      }
       return false;
     },
     has(target, prop) {

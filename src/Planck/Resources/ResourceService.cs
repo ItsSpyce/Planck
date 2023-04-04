@@ -26,7 +26,7 @@ namespace Planck.Resources
       _configuration = options.Value;
     }
 
-    protected void ConnectWithLocalUri(IPlanckWindow planck, string? root)
+    protected void InitializeStartup(IPlanckWindow planck, string? root)
     {
       if (planck.CoreWebView2 == null)
       {
@@ -40,20 +40,6 @@ namespace Planck.Resources
         using var streamReader = new StreamReader(asm.GetManifestResourceStream(resourceName));
         _stdlib = streamReader.ReadToEnd();
       }
-
-      planck.CoreWebView2.NavigationStarting += (_, args) =>
-      {
-        if (args.Uri == Constants.StartPageContentAsBase64)
-        {
-          // reload the entry because for some reason this gets called here on refresh
-          void AfterRequestCompleted(object sender, CoreWebView2NavigationCompletedEventArgs args)
-          {
-            planck.NavigateToEntry(_configuration);
-            planck.CoreWebView2.NavigationCompleted -= AfterRequestCompleted;
-          }
-          planck.CoreWebView2.NavigationCompleted += AfterRequestCompleted;
-        }
-      };
 
       planck.CoreWebView2.NavigationCompleted += (_, args) =>
       {

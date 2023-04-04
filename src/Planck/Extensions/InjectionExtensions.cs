@@ -7,11 +7,13 @@ using Planck.Commands;
 using Planck.Configuration;
 using Planck.Controls;
 using Planck.HttpClients;
+using Planck.IO;
 using Planck.MacroConfig.Extensions;
 using Planck.Messages;
 using Planck.Modules;
 using Planck.Modules.Internal;
 using Planck.Resources;
+using Planck.TypeConverter;
 using System.IO;
 using System.Reflection;
 
@@ -67,6 +69,12 @@ namespace Planck.Extensions
                 // TODO: add WinForms splashscreen
                 : null!
             );
+
+          // Add IO stuff
+          services
+            .AddSingleton<IStreamPool, StreamPool>()
+            .AddScoped<IPropTypeConverter, StreamPropTypeConverter>()
+            .AddScoped<StreamPropTypeConverter>();
         });
 
 

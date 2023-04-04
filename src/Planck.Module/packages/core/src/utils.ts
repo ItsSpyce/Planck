@@ -28,13 +28,13 @@ export function postMessageAndWaitSync<TResponse>(
   operationId: number,
   until?: (response: Array<TResponse>) => boolean
 ) {
-  let response: TResponse | null = null;
+  let response: TResponse[] | null = null;
   function handler(args: MessageEventArgs<PlanckResponse<TResponse>>) {
     if (
       args.data.operationId === operationId &&
       (typeof until === 'undefined' || until(args.data.body))
     ) {
-      response = args.data.body[0];
+      response = args.data.body;
       console.debug('Received webmessage', operationId, args.data);
       window.chrome.webview.removeEventListener('message', handler);
     }
@@ -46,7 +46,7 @@ export function postMessageAndWaitSync<TResponse>(
   while (response === null) {
     // do nothing
   }
-  return response as TResponse;
+  return response as TResponse[];
 }
 
 export function createOperationIdFactory() {

@@ -10,14 +10,13 @@ namespace Planck
   internal class PlanckDevServerService : IHostedService
   {
     private readonly PlanckConfiguration _config;
-    private Process? _nodeProcess;
 
     public PlanckDevServerService(IOptions<PlanckConfiguration> configuration)
     {
       _config = configuration.Value;
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
 #if DEBUG
       if (!string.IsNullOrEmpty(_config.DevCommand))
@@ -38,13 +37,12 @@ namespace Planck
         process.Start();
       }
 #endif
+      return Task.CompletedTask;
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken)
+    public Task StopAsync(CancellationToken cancellationToken)
     {
-      _nodeProcess?.Kill();
-      _nodeProcess?.Dispose();
+      return Task.CompletedTask;
     }
-
   }
 }

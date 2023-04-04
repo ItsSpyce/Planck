@@ -18,18 +18,6 @@ namespace Planck.Modules.Internal
     public string DirectorySeparator => Path.DirectorySeparatorChar.ToString();
 
     [ExportMethod]
-    public InteropStream? ReadFile(string path)
-    {
-      if (!File.Exists(path))
-      {
-        return null;
-      }
-      var stream = File.OpenRead(path);
-      if (stream == default)
-      {
-        return null;
-      }
-      return new InteropStream(stream);
-    }
+    public Stream ReadFile(string path) => File.OpenRead(path);
   }
 }

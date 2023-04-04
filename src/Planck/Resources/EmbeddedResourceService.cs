@@ -23,7 +23,7 @@ namespace Planck.Resources
 
     public override void ConnectToPlanck(IPlanckWindow planck, string? root)
     {
-      ConnectWithLocalUri(planck, root);
+      InitializeStartup(planck, root);
       planck.CoreWebView2.WebResourceRequested += (_, args) =>
       {
         if (args.Request.Uri.StartsWith(IResourceService.AppUrl, StringComparison.OrdinalIgnoreCase))
