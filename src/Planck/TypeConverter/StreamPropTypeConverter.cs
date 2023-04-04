@@ -25,7 +25,7 @@ namespace Planck.TypeConverter
       return null;
     }
 
-    StreamLedger Convert(Stream stream) => _streamPool.CreateLedger(stream);
+    StreamLedger Convert(Stream stream) => _streamPool.CreateLedger(ref stream);
 
     public async Task<object?> ConvertAsync(object? value)
     {
@@ -36,7 +36,7 @@ namespace Planck.TypeConverter
       return null;
     }
 
-    Task<StreamLedger> ConvertAsync(Stream stream) => Task.FromResult(_streamPool.CreateLedger(stream));
+    Task<StreamLedger> ConvertAsync(Stream stream) => Task.FromResult(_streamPool.CreateLedger(ref stream));
 
     public bool CanConvert(Type type) => type == typeof(Stream) || type.BaseType == typeof(Stream);
   }

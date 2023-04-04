@@ -1,4 +1,5 @@
 ﻿using Microsoft.Web.WebView2.Core;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Planck.Commands;
 using Planck.Commands.Internal;
@@ -19,6 +20,11 @@ namespace Planck.Extensions
 {
   internal static class PlanckExtensions
   {
+    static readonly Newtonsoft.Json.JsonSerializer _jsonSerializer = new()
+    {
+
+    };
+
     public static void ConfigureMessages(this IPlanckWindow planckWindow, IMessageService commandHandler)
     {
       planckWindow.CoreWebView2.WebMessageReceived += (_, args) =>
@@ -27,7 +33,7 @@ namespace Planck.Extensions
         if (JsonElement.TryParseValue(ref reader, out var asJson) && asJson != null)
         {
           var (operationId, results) = commandHandler.HandleMessageAsync((JsonElement)asJson).Result;
-          var jarray = JArray.FromObject(results.Where(r => r != null));
+          var jarray = JArray.FromObject(results.Where(r => r != null), _jsonSerializer);
           planckWindow.CoreWebView2.PostWebMessageAsJson($$"""
             { "operationId": {{operationId}}, "body": {{jarray}} }
             """);

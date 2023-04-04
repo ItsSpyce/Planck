@@ -137,18 +137,6 @@ namespace Planck.Modules
       return null;
     }
 
-    static Dictionary<string, object> GetFieldProperties<T>(T value)
-    {
-      var properties = new Dictionary<string, object>();
-
-      if (value is Stream stream)
-      {
-        properties.Add("Length", stream.Length);
-      }
-
-      return properties;
-    }
-
     static string GetExportReturnType(Type type, bool isMethod)
     {
       var typeResult = "void";

@@ -37,7 +37,7 @@ namespace Planck.Resources
         // load stdlib
         var asm = GetType().Assembly;
         var resourceName = $"{asm.GetName().Name}.Scripts.core.js";
-        using var streamReader = new StreamReader(asm.GetManifestResourceStream(resourceName));
+        using var streamReader = new StreamReader(asm.GetManifestResourceStream(resourceName)!);
         _stdlib = streamReader.ReadToEnd();
       }
 

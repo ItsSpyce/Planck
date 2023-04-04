@@ -14,7 +14,7 @@ namespace Planck.IO
     public Guid Id { get; }
 
     [JsonProperty("position")]
-    public int Position { get; set; }
+    public long Position { get; set; }
 
     [JsonProperty("length")]
     public long Length { get; set; }

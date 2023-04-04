@@ -85,10 +85,15 @@ namespace Planck.Messages
         {
           var methodArgs = InteropConverter.ConvertJsonToMethodArgs(body, method, _serviceProvider.GetService);
           var result = method.Invoke(null, methodArgs);
-          if (result is Task<object> awaitableWithReturn)
+          if (result is Task resultAsTask)
           {
-            var awaited = await awaitableWithReturn;
-            resultList.Add(awaited);
+            await resultAsTask;
+            var resultProperty = resultAsTask.GetType().GetProperty("Result");
+            var taskResult = resultProperty?.GetValue(resultAsTask);
+            if (taskResult is not null)
+            {
+              resultList.Add(taskResult);
+            }
           }
           else
           {
