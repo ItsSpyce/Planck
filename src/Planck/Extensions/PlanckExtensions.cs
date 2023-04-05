@@ -44,7 +44,6 @@ namespace Planck.Extensions
     public static void ConfigureModules(this IPlanckWindow planckWindow, IModuleService modules)
     {
       modules.Initialize();
-      planckWindow.CoreWebView2.AddHostObjectToScript("__modules__", new ModuleBridge(modules));
     }
 
     public static void ConfigureResources(this IPlanckWindow planckWindow, IResourceService resources, string root)

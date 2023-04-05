@@ -103,8 +103,6 @@ namespace Planck.Controls.Wpf
       IModuleService moduleService,
       IOptions<PlanckConfiguration> configuration)
     {
-      AllowsTransparency = true;
-      WindowStyle = WindowStyle.None;
       IsHitTestVisible = true;
       Background = null;
       _configuration = configuration.Value;

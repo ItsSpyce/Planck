@@ -19,7 +19,7 @@ namespace Planck.Modules
   ///   References a module that can be used via `planck.import`
   /// </summary>
   /// <remarks>Module functionality is based on RPC and are ESM module based (no "default" export, only named).</remarks>
-  public abstract class Module : HostObject
+  public abstract class Module
   {
     delegate IPropTypeConverter GetPropTypeConverter();
 

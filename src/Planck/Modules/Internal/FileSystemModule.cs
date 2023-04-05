@@ -14,10 +14,10 @@ namespace Planck.Modules.Internal
     {
     }
 
-    [ExportProperty]
+    [ExportProperty("directorySeparator")]
     public string DirectorySeparator => Path.DirectorySeparatorChar.ToString();
 
-    [ExportMethod]
+    [ExportMethod("readFile")]
     public Stream ReadFile(string path) => File.OpenRead(path);
   }
 }

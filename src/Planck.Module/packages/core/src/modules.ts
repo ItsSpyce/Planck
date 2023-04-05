@@ -10,10 +10,6 @@ export async function _import<TModule>(id: string) {
   if (id in moduleMap) {
     return moduleMap[id] as TModule;
   }
-  // const [moduleConfiguration] = await postMessageAndWait<ExportDefinition[]>(
-  //   { command: 'LOAD_MODULE', body: { id } },
-  //   operationIdFactory.next()
-  // );
   const moduleConfiguration = await sendMessage<ExportDefinition[]>(
     'LOAD_MODULE',
     { id }
