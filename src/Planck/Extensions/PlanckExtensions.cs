@@ -1,20 +1,14 @@
 ﻿using Microsoft.Web.WebView2.Core;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Planck.Commands;
 using Planck.Commands.Internal;
 using Planck.Configuration;
 using Planck.Controls;
 using Planck.Messages;
 using Planck.Modules;
 using Planck.Resources;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 
 namespace Planck.Extensions
 {
@@ -24,6 +18,17 @@ namespace Planck.Extensions
     {
 
     };
+
+    public static void ConfigureCoreWebView2(this IPlanckWindow planckWindow)
+    {
+      planckWindow.CoreWebView2.Settings.IsStatusBarEnabled = false;
+#if DEBUG
+      planckWindow.CoreWebView2.Settings.AreDevToolsEnabled = true;
+#else
+      planckWindow.CoreWebView2.Settings.AreDevToolsEnabled = false;
+#endif
+
+    }
 
     public static void ConfigureMessages(this IPlanckWindow planckWindow, IMessageService commandHandler)
     {
@@ -70,6 +75,7 @@ namespace Planck.Extensions
             break;
         }
       };
+
     }
 
     internal static void NavigateToEntry(this IPlanckWindow planckWindow, PlanckConfiguration config)

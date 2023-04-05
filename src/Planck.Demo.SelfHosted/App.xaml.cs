@@ -1,4 +1,5 @@
-﻿using Planck.Controls;
+﻿using Microsoft.Extensions.Hosting;
+using Planck.Controls;
 using Planck.Resources;
 using System.Windows;
 
@@ -9,11 +10,9 @@ namespace Planck.Demo.SelfHosted
   /// </summary>
   public partial class App : Application
   {
-    IPlanckWindow? _planck;
-
     async void OnStartup(object sender, StartupEventArgs args)
     {
-      _planck = await PlanckApplication.StartAsync(ResourceMode.Local);
+      var host = await PlanckApplication.StartAsync();
     }
   }
 }

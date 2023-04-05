@@ -1,12 +1,5 @@
-﻿using Planck.Controls;
-using Planck.IO;
-using Planck.Modules;
-using Planck.TypeConverter;
-using System.IO;
-using System.Text.Json;
+﻿using Planck.Modules;
 using System.Text.Json.Nodes;
-using System.Windows;
-using System.Xml.Linq;
 
 namespace Planck.Commands
 {
@@ -24,7 +17,7 @@ namespace Planck.Commands
 
     [CommandHandler("GET_MODULE_PROP")]
     public static object? GetModuleProp([Service] IModuleService moduleService, string id, string prop)
-    { 
+    {
       if (moduleService.GetModule(id) is not Module module)
       {
         throw new ArgumentException("No module found matching", nameof(id));

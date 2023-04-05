@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
-using Microsoft.Web.WebView2.Core;
 using Planck.Configuration;
 using Planck.Controls;
-using Planck.Extensions;
 using System.IO;
 
 namespace Planck.Resources

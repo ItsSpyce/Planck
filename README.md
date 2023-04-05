@@ -1,43 +1,46 @@
 # Planck
 
-> Readme in progress, subject to change
+A library for creating cross-platform apps using WebView2 and WPF.
 
 ## Usage
 
-### From dotnet/C#
+1. Create your WPF project
+2. Run `> dotnet add package Planck` or install via Visual Studio tools
+3. Navigate to your `App.xaml.cs` and add the following code:
 
 ```cs
-// dotnet new --install Planck.Application --name MyDesktopApp
+using Planck.Controls;
 
-using Planck;
-
-// without dependency injection
-var app = await PlanckApplication.StartAsync(new()
+public partial class App : Application
 {
-  SslOnly = true
-});
-// with dependency injection
-var host = PlanckApplication.CreateHost(new()
-{
-  SslOnly = true
-}).Build();
-await host.StartAsync();
+  async void OnStartup(object sender, StartupEventArgs args)
+  {
+    await PlanckApplication.StartAsync();
+  }
+}
 ```
 
+4. Add `appsettings.json` to your root project directory with the following lines:
 
-### From NPM/Yarn
-
-```js
-// npm install @planck/app
-
-import { application } from '@planck/app';
-
-const app = application({
-  sslOnly: true,
-});
-
-app.start().then(() => {
-  app.show();
-  console.log('Hello from Planck');
-});
+```json
+{
+  "Planck": {
+    // the directory the HTML/JS code lives in
+    "ClientDirectory": "Client",
+    // the output directory for production builds
+    "BuildDirectory": "Client\\dist",
+    // whether or not to use WPF. WinForms support is TBD
+    "UseWpf": true,
+    // the URL to navigate to during development. If null, it will
+    // fallback to the Entry field
+    "DevUrl": "http://localhost:3000/",
+    // entry for production builds
+    "Entry": "Client\\dist\\index.html",
+    // the script to run during development for npm
+    "DevCommand": "dev"
+  }
+}
 ```
+
+5. Create your HTML files. It's recommended to use Vite as a starting point. If you do, ensure the port is the same as what's inside your `appsettings.json`.
+6. Run!

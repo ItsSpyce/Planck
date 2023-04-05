@@ -1,7 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Planck.Modules
 {
@@ -10,7 +7,7 @@ namespace Planck.Modules
   {
     internal const string PostInitializationMessage = "Cannot add modules after initialization";
     internal const string NotReadyMessage = "Cannot get modules before initialization is complete";
-    
+
     readonly IServiceCollection _services = new ServiceCollection();
     readonly Dictionary<string, Type> _moduleTypeMap = new();
     IServiceProvider? _serviceProvider;
@@ -20,7 +17,7 @@ namespace Planck.Modules
     /// </summary>
     public ModuleService()
     {
-      
+
     }
 
     /// <summary>

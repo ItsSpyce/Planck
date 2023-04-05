@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Web.WebView2.Core;
 using Planck.Commands;
 using Planck.Configuration;
 using Planck.Controls;
@@ -27,6 +26,7 @@ namespace Planck.Extensions
         .ConfigureServices((context, services) =>
         {
           var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+          services.AddHostedService<PlanckSplashscreenService>();
 
           // for reference in the components
           services.AddSingleton(assembly);

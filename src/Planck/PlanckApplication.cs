@@ -11,6 +11,13 @@ namespace Planck
 {
   public static class PlanckApplication
   {
+    public static IHostBuilder CreateHost(PlanckConfiguration? configuration = null) =>
+#if DEBUG
+      CreateHost(ResourceMode.Local, configuration);
+#else
+      CreateHost(ResourceMode.Embedded, configuration);
+#endif
+
     public static IHostBuilder CreateHost(ResourceMode resourceMode, PlanckConfiguration? configuration = null) =>
       CreateHost(Array.Empty<string>(), resourceMode, configuration);
 
@@ -27,7 +34,7 @@ namespace Planck
         .UsePlanckModules();
       return host;
     }
-      
+
     public static Task<IPlanckWindow> StartAsync(PlanckConfiguration? configuration = null)
     {
       var resourceMode =
@@ -39,16 +46,30 @@ namespace Planck
       return StartAsync(resourceMode, configuration);
     }
 
-    public static async Task<IPlanckWindow> StartAsync(ResourceMode resourceMode, PlanckConfiguration? configuration = null)
+    public static Task<IPlanckWindow> StartAsync(ResourceMode resourceMode, PlanckConfiguration? configuration = null) =>
+      StartAsync(resourceMode, (services) => { }, configuration);
+
+    public static Task<IPlanckWindow> StartAsync(
+      Action<IServiceCollection> configureServicesDelegate,
+      PlanckConfiguration? configuration = null)
+    {
+      var resourceMode =
+#if DEBUG
+        ResourceMode.Local;
+#else
+        ResourceMode.Embedded;
+#endif
+      return StartAsync(resourceMode, configureServicesDelegate, configuration);
+    }
+
+    public static async Task<IPlanckWindow> StartAsync(
+      ResourceMode resourceMode,
+      Action<IServiceCollection> configureServicesDelegate,
+      PlanckConfiguration? configuration = null)
     {
       var host = CreateHost(resourceMode, configuration)
+        .ConfigureServices(configureServicesDelegate)
         .Build();
-      configuration ??= host.Services.GetService<IOptions<PlanckConfiguration>>()!.Value;
-      if (!string.IsNullOrEmpty(configuration.Splashscreen))
-      {
-        var splashscreen = host.Services.GetService<IPlanckSplashscreen>();
-        splashscreen?.Show();
-      }
 
       await host.StartAsync();
 

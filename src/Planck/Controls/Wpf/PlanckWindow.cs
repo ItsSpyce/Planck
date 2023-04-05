@@ -1,18 +1,16 @@
-﻿using Planck.Commands;
-using Planck.Configuration;
-using System.Windows;
-using Planck.Resources;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Logging;
-using Microsoft.Web.WebView2.Wpf;
 using Microsoft.Web.WebView2.Core;
-using System.Text.RegularExpressions;
+using Microsoft.Web.WebView2.Wpf;
+using Planck.Configuration;
 using Planck.Extensions;
-using System.IO;
-using System.Windows.Input;
-using Planck.Modules;
-using Planck.Modules.Internal;
 using Planck.Messages;
+using Planck.Modules;
+using Planck.Resources;
+using System.IO;
+using System.Text.RegularExpressions;
+using System.Windows;
+using System.Windows.Input;
 
 namespace Planck.Controls.Wpf
 {
@@ -126,13 +124,15 @@ namespace Planck.Controls.Wpf
         CreationProperties = new()
         {
           // UserDataFolder = new Uri
-        }
+        },
       };
+
       Loaded += async (_, _) =>
       {
         Hide();
         // var env = await CoreWebView2Environment.CreateAsync(null, null, envOptions);
         await WebView.EnsureCoreWebView2Async();
+        this.ConfigureCoreWebView2();
         this.ConfigureSecurityPolicies(OpenLinksIn);
         this.ConfigureResources(_resourceService, _configuration.DevUrl ?? Directory.GetCurrentDirectory());
         this.ConfigureMessages(_messageService);

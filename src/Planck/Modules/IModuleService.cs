@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Planck.Modules
+﻿namespace Planck.Modules
 {
   public interface IModuleService
   {

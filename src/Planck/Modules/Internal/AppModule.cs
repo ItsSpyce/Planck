@@ -1,7 +1,4 @@
 ﻿using Planck.Controls;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Planck.Modules.Internal
 {

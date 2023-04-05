@@ -1,15 +1,11 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Planck.Controls;
-using Planck.IO;
 using Planck.TypeConverter;
 using Planck.Utils;
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -60,7 +56,7 @@ namespace Planck.Modules
         var converter = converters.SingleOrDefault(c => c.CanConvert(methodInfo.ReturnType));
         if (converter is not null)
         {
-          _typeConverters.Add(methodName, () => (IPropTypeConverter) services.GetService(converter.GetType())!);
+          _typeConverters.Add(methodName, () => (IPropTypeConverter)services.GetService(converter.GetType())!);
         }
       }
       foreach (var (propName, propInfo) in _moduleProperties)
@@ -116,7 +112,7 @@ namespace Planck.Modules
         var result = methodInfo.Invoke(this, args);
         _typeConverters.TryGetValue(method, out var getConverter);
         var converter = getConverter is not null ? getConverter() : null;
-        
+
         if (result is Task<object?> awaitableWithResult)
         {
           result = await awaitableWithResult;
