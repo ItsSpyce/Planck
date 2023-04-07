@@ -1,8 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using Planck.Configuration;
+using Planck.Exceptions;
 using Planck.Extensions;
 using Planck.Messages;
 using Planck.Modules;
@@ -85,25 +87,19 @@ namespace Planck.Controls.Wpf
 
     protected WebView2 WebView => (WebView2)Content;
 
-    readonly IResourceService _resourceService;
     readonly ILogger<PlanckWindow> _logger;
     readonly IPlanckSplashscreen _splashscreen;
     readonly PlanckConfiguration _configuration;
-    readonly IMessageService _messageService;
-    readonly IModuleService _moduleService;
     readonly RoutedCommand _f12Command = new();
 
     public PlanckWindow(
-      IResourceService resourceService,
+      IServiceProvider services,
       ILogger<PlanckWindow> logger,
       IPlanckSplashscreen splashscreen,
-      IMessageService messageService,
-      IModuleService moduleService,
-      IOptions<PlanckConfiguration> configuration)
+      PlanckConfiguration configuration)
     {
-      IsHitTestVisible = true;
       Background = null;
-      _configuration = configuration.Value;
+      _configuration = configuration;
 
       if (SslOnly == default)
         SslOnly = _configuration.SslOnly;
@@ -113,11 +109,8 @@ namespace Planck.Controls.Wpf
       if (Splashscreen == default)
         Splashscreen = _configuration.Splashscreen;
 
-      _resourceService = resourceService;
       _logger = logger;
       _splashscreen = splashscreen;
-      _messageService = messageService;
-      _moduleService = moduleService;
       Content = new WebView2
       {
         DefaultBackgroundColor = Color.Transparent,
@@ -130,13 +123,30 @@ namespace Planck.Controls.Wpf
       Loaded += async (_, _) =>
       {
         Hide();
+        var resourceService = services.GetService<IResourceService>();
+        var messageService = services.GetService<IMessageService>();
+        var moduleService = services.GetService<IModuleService>();
+
+        if (resourceService is null)
+        {
+          throw new PlanckWindowException("No IResourceService found");
+        }
+        if (messageService is null)
+        {
+          throw new PlanckWindowException("No IMessageService found");
+        }
+        if (moduleService is null)
+        {
+          throw new PlanckWindowException("No IModuleService found");
+        }
+
         // var env = await CoreWebView2Environment.CreateAsync(null, null, envOptions);
         await WebView.EnsureCoreWebView2Async();
         this.ConfigureCoreWebView2();
         this.ConfigureSecurityPolicies(OpenLinksIn);
-        this.ConfigureResources(_resourceService, _configuration.DevUrl ?? Directory.GetCurrentDirectory());
-        this.ConfigureMessages(_messageService);
-        this.ConfigureModules(_moduleService);
+        this.ConfigureResources(resourceService, _configuration.DevUrl ?? Directory.GetCurrentDirectory());
+        this.ConfigureMessages(messageService);
+        this.ConfigureModules(moduleService);
         // CoreWebView2.AddHostObjectToScript("clipboard", new ClipboardModule(this));
 
         // WebView.NavigateToString(Constants.StartPageContent);

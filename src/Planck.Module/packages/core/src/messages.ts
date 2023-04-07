@@ -11,7 +11,7 @@ export async function sendMessage<TResponse = any>(
   body?: any
 ): Promise<TResponse> {
   const operationId = operationIdFactory.next();
-  const [result] = await postMessageAndWait<TResponse>(
+  const result = await postMessageAndWait<TResponse>(
     { command, body },
     operationId
   );
@@ -23,7 +23,7 @@ export function sendMessageSync<TResponse = any>(
   body?: any
 ): TResponse {
   const operationId = operationIdFactory.next();
-  const [result] = postMessageAndWaitSync<TResponse>(
+  const result = postMessageAndWaitSync<TResponse>(
     { command, body },
     operationId
   );

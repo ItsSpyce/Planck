@@ -7,7 +7,7 @@ namespace Planck.Resources
 {
   internal class LocalResourceService : InternalResourceService
   {
-    public LocalResourceService(IOptions<PlanckConfiguration> options) : base(options)
+    public LocalResourceService(PlanckConfiguration options) : base(options)
     {
     }
 

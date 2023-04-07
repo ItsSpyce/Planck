@@ -1,11 +1,11 @@
-﻿using Planck.Commands;
+﻿using Planck.Messages;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Planck.Utils
 {
-  internal static class InteropConverter
+    internal static class InteropConverter
   {
     public delegate object? TypeFromServiceDelegate(Type type);
 

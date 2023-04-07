@@ -4,6 +4,6 @@ namespace Planck.Messages
 {
   public interface IMessageService
   {
-    Task<(int, IEnumerable<object?>)> HandleMessageAsync(JsonElement message);
+    Task<(int, object?)> HandleMessageAsync(JsonElement message);
   }
 }

@@ -18,6 +18,20 @@
     Task<object?> ConvertAsync(object? value);
 
     /// <summary>
+    ///   Converts the object back to its C# value
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    object? ConvertBack(object? value);
+
+    /// <summary>
+    ///   Converts the object back to its C# value asynchronously
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    Task<object?> ConvertBackAsync(object? value);
+
+    /// <summary>
     ///   Returns if the type converter is allowed to convert this type
     /// </summary>
     /// <param name="type"></param>

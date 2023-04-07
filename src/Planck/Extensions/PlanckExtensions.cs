@@ -1,6 +1,5 @@
 ﻿using Microsoft.Web.WebView2.Core;
 using Newtonsoft.Json.Linq;
-using Planck.Commands.Internal;
 using Planck.Configuration;
 using Planck.Controls;
 using Planck.Messages;
@@ -37,18 +36,17 @@ namespace Planck.Extensions
         var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(args.WebMessageAsJson));
         if (JsonElement.TryParseValue(ref reader, out var asJson) && asJson != null)
         {
-          var (operationId, results) = commandHandler.HandleMessageAsync((JsonElement)asJson).Result;
-          var jarray = JArray.FromObject(results.Where(r => r != null), _jsonSerializer);
-          planckWindow.CoreWebView2.PostWebMessageAsJson($$"""
-            { "operationId": {{operationId}}, "body": {{jarray}} }
-            """);
+          var (operationId, body) = commandHandler.HandleMessageAsync((JsonElement)asJson).Result;
+          var message = JObject.FromObject(new { body, operationId });
+          
+          planckWindow.CoreWebView2.PostWebMessageAsJson(message.ToString());
         }
       };
     }
 
     public static void ConfigureModules(this IPlanckWindow planckWindow, IModuleService modules)
     {
-      modules.Initialize();
+      // do we need to do anything here?
     }
 
     public static void ConfigureResources(this IPlanckWindow planckWindow, IResourceService resources, string root)
@@ -76,27 +74,6 @@ namespace Planck.Extensions
         }
       };
 
-    }
-
-    internal static void NavigateToEntry(this IPlanckWindow planckWindow, PlanckConfiguration config)
-    {
-#if DEBUG
-      var url = config.DevUrl;
-      if (string.IsNullOrEmpty(url))
-      {
-        url = Directory.GetCurrentDirectory();
-      }
-      else
-      {
-        if (!Path.IsPathFullyQualified(url) && !Uri.IsWellFormedUriString(url, UriKind.Absolute))
-        {
-          url = Path.Combine(Directory.GetCurrentDirectory(), url);
-        }
-      }
-      planckWindow.CoreWebView2.PostWebMessage(new NavigateCommand { To = url });
-#else
-      planckWindow.CoreWebView2.PostWebMessage(new NavigateCommand { To = config.Entry });
-#endif
     }
   }
 }

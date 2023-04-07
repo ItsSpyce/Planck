@@ -1,9 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Planck.Commands;
 using Planck.Configuration;
+using Planck.Controllers;
 using Planck.Controls;
 using Planck.HttpClients;
 using Planck.IO;
@@ -20,7 +19,7 @@ namespace Planck.Extensions
 {
   public static class InjectionExtensions
   {
-    public static IHostBuilder UsePlanck(this IHostBuilder host, ResourceMode resourceMode, PlanckConfiguration? configuration = null) =>
+    public static IHostBuilder UsePlanck(this IHostBuilder host, ResourceMode resourceMode, PlanckConfiguration configuration) =>
       host
         .UseDefaultCommands()
         .ConfigureServices((context, services) =>
@@ -34,7 +33,7 @@ namespace Planck.Extensions
           // Add HTTP clients
           services.AddHttpClient(nameof(PlanckHttpClient), (services, client) =>
             {
-              client.BaseAddress = new Uri(services.GetService<IOptions<PlanckConfiguration>>()!.Value.DevUrl!);
+              client.BaseAddress = new Uri(services.GetService<PlanckConfiguration>()!.DevUrl!);
               client.DefaultRequestHeaders.Add("Accept-Language", "en-GB,en-US;q=0.8,en;q=0.6,ru;q=0.4");
             });
 
@@ -51,30 +50,34 @@ namespace Planck.Extensions
               break;
           }
 
-          // Add WPF controls
+          // Core services
           services
-            // Add WinForms controls
-            .AddScoped<Controls.WinForms.PlanckWindow>()
-            // .AddScoped<Controls.WinForms.PlanckSplashscreen>()
-            .AddScoped<Controls.Wpf.PlanckWindow>()
-            .AddScoped<Controls.Wpf.PlanckSplashscreen>()
-            .AddScoped<IPlanckWindow>(services =>
-              services.GetService<IOptions<PlanckConfiguration>>()!.Value.UseWpf
-                ? services.GetService<Controls.Wpf.PlanckWindow>()!
-                : services.GetService<Controls.WinForms.PlanckWindow>()!
-            )
-            .AddScoped<IPlanckSplashscreen>(services =>
-              services.GetService<IOptions<PlanckConfiguration>>()!.Value.UseWpf
-                ? services.GetService<Controls.Wpf.PlanckSplashscreen>()!
-                // TODO: add WinForms splashscreen
-                : null!
-            );
+            .AddSingleton<IModuleService, ModuleService>()
+            .AddSingleton<IMessageService, MessageService>();
+
+          // add PlanckConfiguration
+          services
+            .AddSingleton(configuration);
+
+          // Add controls
+          if (configuration.UseWpf)
+          {
+            services
+              .AddScoped<IPlanckWindow, Controls.Wpf.PlanckWindow>()
+              .AddScoped<IPlanckSplashscreen, Controls.Wpf.PlanckSplashscreen>();
+          }
+          else
+          {
+            services
+              .AddScoped<IPlanckWindow, Controls.WinForms.PlanckWindow>();
+            // .AddScoped<IPlanckSplashscreen, Controls.WinForms.PlanckSplashscreen>();
+          }
 
           // Add IO stuff
           services
             .AddSingleton<IStreamPool, StreamPool>()
-            .AddScoped<IPropTypeConverter, StreamPropTypeConverter>()
-            .AddScoped<StreamPropTypeConverter>();
+            .AddTypeConverter<StreamPropTypeConverter>()
+            .AddTypeConverter<ModulePropertyTypeConverter>();
         });
 
 
@@ -89,49 +92,56 @@ namespace Planck.Extensions
     public static IHostBuilder UseDefaultCommands(this IHostBuilder host) =>
       host.ConfigureServices((context, services) =>
         services
-          .AddHandlers<PlanckHandlers>()
+          .AddMessageController<WindowController>()
+          .AddMessageController<StreamController>()
+          .AddMessageController<ModuleController>()
       );
-
-    /// <summary>
-    ///   Configures the app to use the Planck object within loaded configurations.
-    /// </summary>
-    /// <param name="host"></param>
-    /// <returns></returns>
-    public static IHostBuilder UsePlanckConfiguration(this IHostBuilder host, Dictionary<string, string> macros) =>
-      host
-        .ConfigureServices((context, services) =>
-          services.Configure<PlanckConfiguration>(
-            context.Configuration.GetSection(PlanckConfiguration.PlanckKey)))
-        .ConfigureAppConfiguration(config =>
-          config.BindMacros(macros));
 
     public static IHostBuilder UsePlanckModules(this IHostBuilder host) =>
       host.ConfigureServices((services) =>
         services
-          .AddSingleton<IModuleService, ModuleService>(serviceProvider =>
-          {
-            var moduleService = new ModuleService(services);
-            moduleService
-              .AddModule<FileSystemModule>("fs")
-              .AddModule<ClipboardModule>("clipboard")
-              .AddModule<AppModule>("app");
-            return moduleService;
-          }));
+          .AddModule<FileSystemModule>("fs")
+          .AddModule<AppModule>("app")
+          .AddModule<ClipboardModule>("clipboard")
+      );
 
-    public static IServiceCollection AddHandlers<T>(this IServiceCollection services)
-    {
-      var methods = typeof(T).GetMethods();
-      services.AddSingleton<IMessageService, MessageService>((services) =>
-      {
-        var messageService = new MessageService(
-          services.GetService<IServiceProvider>()!,
-          services.GetService<ILogger<MessageService>>()!);
-        return messageService
-          .AddHandlersFromType<T>();
-      });
+    public static IServiceCollection AddTypeConverter<T>(this IServiceCollection services) where T : class, IPropTypeConverter =>
+      services
+        .AddScoped<IPropTypeConverter, T>()
+        .AddScoped<T>();
 
-      return services;
-    }
+    /// <summary>
+    ///   Adds the message controller to Planck
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="services"></param>
+    /// <returns></returns>
+    public static IServiceCollection AddMessageController<T>(this IServiceCollection services) where T : MessageController =>
+      services
+        .AddScoped<MessageController, T>()
+        .AddScoped<T>();
+
+    /// <summary>
+    ///   Adds the message controller to Planck
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="services"></param>
+    /// <param name="implementationFactory"></param>
+    /// <returns></returns>
+    public static IServiceCollection AddMessageController<T>(this IServiceCollection services, Func<IServiceProvider, T> implementationFactory) where T : MessageController =>
+      services
+        .AddScoped<MessageController, T>(implementationFactory)
+        .AddScoped(implementationFactory);
+
+    public static IServiceCollection AddModule<T>(this IServiceCollection services, string name) where T : Modules.Module =>
+      services
+        .AddSingleton<ModuleService.IModuleDefinition, ModuleService.ModuleDefinition<T>>((_) => new ModuleService.ModuleDefinition<T>(name))
+        .AddScoped<T>();
+
+    public static IServiceCollection AddModule<T>(this IServiceCollection services, string name, Func<IServiceProvider, T> implementationFactory) where T : Modules.Module =>
+      services
+        .AddSingleton<ModuleService.IModuleDefinition, ModuleService.ModuleDefinition<T>>((_) => new ModuleService.ModuleDefinition<T>(name))
+        .AddScoped(implementationFactory);
 
 
     static string GetProjectLocation()

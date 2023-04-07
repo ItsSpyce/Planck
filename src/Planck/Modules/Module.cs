@@ -31,14 +31,16 @@ namespace Planck.Modules
       public bool HasSetter;
     }
 
+    internal readonly string Name;
     protected readonly IPlanckWindow Window;
     protected readonly IServiceProvider Services;
     readonly Dictionary<string, MethodInfo> _moduleMethods;
     readonly Dictionary<string, PropertyInfo> _moduleProperties;
     readonly Dictionary<string, GetPropTypeConverter> _typeConverters;
 
-    protected Module(IPlanckWindow planckWindow, IServiceProvider services)
+    protected Module(string name, IPlanckWindow planckWindow, IServiceProvider services)
     {
+      Name = name;
       Window = planckWindow;
       Services = services;
       _moduleMethods = GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
@@ -61,6 +63,7 @@ namespace Planck.Modules
       }
       foreach (var (propName, propInfo) in _moduleProperties)
       {
+        // do type conversions
         var converter = converters.SingleOrDefault(c => c.CanConvert(propInfo.PropertyType));
         if (converter is not null)
         {
@@ -91,16 +94,50 @@ namespace Planck.Modules
 
     public object? GetModuleProp(string prop)
     {
+      // we're going to hold off on watching properties until AFTER they've been fetched
+      // since we don't want to notify the FE that properties have been updated if they're
+      // not being used
       if (_moduleProperties.TryGetValue(prop, out var propInfo))
       {
+        var value = propInfo.GetValue(this);
         if (_typeConverters.TryGetValue(prop, out var getConverter))
         {
           var converter = getConverter();
-          return converter.Convert(propInfo.GetValue(this));
+          if (propInfo.GetSetMethod() is not null && converter is ModulePropertyTypeConverter)
+          {
+            // having this here is a little scoped but we kind of have to for the sake
+            // of CPU cycles
+            var moduleProperty = (ModuleProperty)value;
+            moduleProperty!.Bind(this, Window);
+          }
+          return converter.Convert(value);
         }
-        return propInfo.GetValue(this);
+        return value;
       }
       return null;
+    }
+
+    public bool SetModuleProp(string prop, object? value)
+    {
+      if (_moduleProperties.TryGetValue(prop, out var propInfo))
+      {
+        try
+        {
+          if (_typeConverters.TryGetValue(prop, out var getConverter))
+          {
+            var converter = getConverter();
+            value = converter.Convert(value);
+          }
+          var setValueMethod = propInfo.GetSetMethod(false);
+          setValueMethod?.Invoke(this, new[] { value });
+          return true;
+        }
+        catch
+        {
+          return false;
+        }
+      }
+      return false;
     }
 
     public async Task<object?> InvokeMethodAsync(string method, JsonArray jsonArgs)

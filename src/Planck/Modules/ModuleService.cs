@@ -5,51 +5,36 @@ namespace Planck.Modules
   // End goal is to use `planck.import('module_name')`
   public class ModuleService : IModuleService
   {
+    public interface IModuleDefinition
+    {
+      string Name { get; }
+      Type Type { get; }
+    }
+
+    public class ModuleDefinition<T> : IModuleDefinition where T : Module
+    {
+      public string Name { get; }
+      public Type Type { get; }
+
+      public ModuleDefinition(string name)
+      {
+        Name = name;
+        Type = typeof(T);
+      }
+    }
+
     internal const string PostInitializationMessage = "Cannot add modules after initialization";
     internal const string NotReadyMessage = "Cannot get modules before initialization is complete";
 
-    readonly IServiceCollection _services = new ServiceCollection();
-    readonly Dictionary<string, Type> _moduleTypeMap = new();
     IServiceProvider? _serviceProvider;
 
     /// <summary>
-    ///   Initializes the service with an empty <see cref="IServiceCollection"/>
+    ///   Initializes the service with the provided <see cref="IServiceProvider"/>
     /// </summary>
-    public ModuleService()
+    /// <param name="serviceProvider"></param>
+    public ModuleService(IServiceProvider serviceProvider)
     {
-
-    }
-
-    /// <summary>
-    ///   Initializes the service with the provided <see cref="IServiceCollection"/>
-    /// </summary>
-    /// <param name="services"></param>
-    public ModuleService(IServiceCollection services)
-    {
-      _services = services;
-    }
-
-    public IModuleService AddModule<T>(string name) where T : Module
-    {
-      if (_serviceProvider != default)
-      {
-        throw new InvalidOperationException(PostInitializationMessage);
-      }
-      _services.AddSingleton<T>();
-      _moduleTypeMap.Add(name, typeof(T));
-      return this;
-    }
-
-    public IModuleService AddModule<T>(string name, T module) where T : Module
-    {
-      if (_serviceProvider != default)
-      {
-        throw new InvalidOperationException(PostInitializationMessage);
-      }
-
-      _services.AddSingleton(module);
-      _moduleTypeMap.Add(name, typeof(T));
-      return this;
+      _serviceProvider = serviceProvider;
     }
 
     public object GetModule<T>() where T : Module
@@ -68,21 +53,12 @@ namespace Planck.Modules
       {
         throw new InvalidOperationException(NotReadyMessage);
       }
-      if (_moduleTypeMap.TryGetValue(name, out var t))
+      var moduleWrapper = _serviceProvider.GetServices<IModuleDefinition>().SingleOrDefault(m => m.Name.Equals(name));
+      if (moduleWrapper is not null)
       {
-        var module = _serviceProvider.GetRequiredService(t);
-        return module;
+        return _serviceProvider.GetRequiredService(moduleWrapper.Type);
       }
       throw new KeyNotFoundException($"No matching module found: {name}");
-    }
-
-    public void Initialize()
-    {
-      if (_serviceProvider != default)
-      {
-        return;
-      }
-      _serviceProvider = _services.BuildServiceProvider();
     }
   }
 }

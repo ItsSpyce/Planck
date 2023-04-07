@@ -19,9 +19,9 @@ namespace Planck.Resources
 
     private string _stdlib = "";
 
-    protected InternalResourceService(IOptions<PlanckConfiguration> options)
+    protected InternalResourceService(PlanckConfiguration configuration)
     {
-      _configuration = options.Value;
+      _configuration = configuration;
     }
 
     protected void InitializeStartup(IPlanckWindow planck, string? root)

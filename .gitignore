@@ -11,4 +11,4 @@ node_modules/
 *.log
 .yarn
 
-src/Planck.Demo.SelfHosted/Client/public/images/splashscreen.png
+src/KKDashboard

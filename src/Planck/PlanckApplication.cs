@@ -11,31 +11,27 @@ namespace Planck
 {
   public static class PlanckApplication
   {
-    public static IHostBuilder CreateHost(PlanckConfiguration? configuration = null) =>
+    public static IHostBuilder CreateHost(PlanckConfiguration configuration) =>
 #if DEBUG
       CreateHost(ResourceMode.Local, configuration);
 #else
       CreateHost(ResourceMode.Embedded, configuration);
 #endif
 
-    public static IHostBuilder CreateHost(ResourceMode resourceMode, PlanckConfiguration? configuration = null) =>
+    public static IHostBuilder CreateHost(ResourceMode resourceMode, PlanckConfiguration configuration) =>
       CreateHost(Array.Empty<string>(), resourceMode, configuration);
 
-    public static IHostBuilder CreateHost(string[] args, ResourceMode resourceMode, PlanckConfiguration? configuration = null)
+    public static IHostBuilder CreateHost(string[] args, ResourceMode resourceMode, PlanckConfiguration configuration)
     {
       var host = Host.CreateDefaultBuilder(args);
 
       host
-        .UsePlanckConfiguration(new()
-        {
-          {"ProjectRoot", ProcessUtilities.GetProjectLocation() }
-        })
         .UsePlanck(resourceMode, configuration)
         .UsePlanckModules();
       return host;
     }
 
-    public static Task<IPlanckWindow> StartAsync(PlanckConfiguration? configuration = null)
+    public static Task<IPlanckWindow> StartAsync(PlanckConfiguration configuration)
     {
       var resourceMode =
 #if DEBUG
@@ -46,12 +42,12 @@ namespace Planck
       return StartAsync(resourceMode, configuration);
     }
 
-    public static Task<IPlanckWindow> StartAsync(ResourceMode resourceMode, PlanckConfiguration? configuration = null) =>
+    public static Task<IPlanckWindow> StartAsync(ResourceMode resourceMode, PlanckConfiguration configuration) =>
       StartAsync(resourceMode, (services) => { }, configuration);
 
     public static Task<IPlanckWindow> StartAsync(
       Action<IServiceCollection> configureServicesDelegate,
-      PlanckConfiguration? configuration = null)
+      PlanckConfiguration configuration)
     {
       var resourceMode =
 #if DEBUG
@@ -65,7 +61,7 @@ namespace Planck
     public static async Task<IPlanckWindow> StartAsync(
       ResourceMode resourceMode,
       Action<IServiceCollection> configureServicesDelegate,
-      PlanckConfiguration? configuration = null)
+      PlanckConfiguration configuration)
     {
       var host = CreateHost(resourceMode, configuration)
         .ConfigureServices(configureServicesDelegate)

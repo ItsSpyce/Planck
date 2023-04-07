@@ -1,5 +1,5 @@
 ﻿using Microsoft.Web.WebView2.Core;
-using Planck.Commands;
+using Newtonsoft.Json.Linq;
 using Planck.IO;
 using Planck.Resources;
 using System.IO;
@@ -53,17 +53,10 @@ namespace Planck.Extensions
       return await coreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(script);
     }
 
-    public static void PostWebMessage<T>(this CoreWebView2 coreWebView2, T command) where T : struct
+    public static void PostWebMessage(this CoreWebView2 coreWebView2, string command, object? body)
     {
-      var commandAttr = command.GetType().GetCustomAttribute<CommandAttribute>();
-      if (commandAttr == null)
-      {
-        throw new InvalidCommandException(typeof(T));
-      }
-      var message = new { command = commandAttr.Name, body = command };
-      var asJsonBytes = JsonSerializer.SerializeToUtf8Bytes(message, _serializerOptions);
-      var asJsonStr = Encoding.UTF8.GetString(asJsonBytes);
-      coreWebView2.PostWebMessageAsJson(asJsonStr);
+      var json = JObject.FromObject(new { command, body });
+      coreWebView2.PostWebMessageAsJson(json.ToString());
     }
 
     public static CoreWebView2WebResourceResponse CreateResourceResponse(

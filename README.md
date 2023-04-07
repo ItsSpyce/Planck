@@ -44,3 +44,7 @@ public partial class App : Application
 
 5. Create your HTML files. It's recommended to use Vite as a starting point. If you do, ensure the port is the same as what's inside your `appsettings.json`.
 6. Run!
+
+## Communicating between C# and JS
+
+Planck hooks into WebView2's messaging functionality and extends it a little further. Built with DependencyInjection as a first-class citizen, Planck allows you to pass a delegate into `StartAsync` that chains to `ConfigureServices`. All Planck functionality is built around DI.

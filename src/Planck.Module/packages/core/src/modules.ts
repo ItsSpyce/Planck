@@ -1,20 +1,56 @@
 import { InteropStream } from 'stream.js';
 import { sendMessage, sendMessageSync } from 'messages.js';
+import { PlanckMessage } from '@planck/types';
+import { waitFor } from 'utils.js';
 
 const moduleMap = Object.create(null) as Record<
   string,
   Awaited<ReturnType<typeof createProxy>>
 >;
+const modulesLoading: string[] = [];
+
+type ModulePropChangedBody = {
+  Name: string;
+  Value: any;
+  Module: string;
+};
+
+window.chrome.webview.addEventListener<PlanckMessage<ModulePropChangedBody>>(
+  'message',
+  (args) => {
+    if (args.data?.command === 'MODULE_PROP_CHANGED') {
+      const { Name, Value, Module } = args.data.body!;
+      const savedModule = moduleMap[Module];
+      if (typeof savedModule !== 'undefined') {
+        moduleMap.updateValue(Name, Value);
+      }
+    }
+  }
+);
 
 export async function _import<TModule>(id: string) {
+  if (modulesLoading.includes(id)) {
+    try {
+      console.debug('Loading in process, waiting', id);
+      await waitFor(() => !modulesLoading.includes(id));
+      console.debug('Completed wait for', id);
+      return moduleMap[id] as TModule;
+    } catch (ex) {
+      // ignore
+      console.debug(ex);
+    }
+  }
   if (id in moduleMap) {
     return moduleMap[id] as TModule;
   }
+  modulesLoading.push(id);
   const moduleConfiguration = await sendMessage<ExportDefinition[]>(
     'LOAD_MODULE',
     { id }
   );
   const proxy = await createProxy(id, moduleConfiguration);
+  modulesLoading.splice(modulesLoading.indexOf(id), 1);
+  moduleMap[id] = proxy;
   return proxy;
 }
 
@@ -49,7 +85,11 @@ interface ExportDefinitionMap {
 }
 
 async function createProxy(id: string, exportDefinitions: ExportDefinition[]) {
-  const obj = Object.create(null);
+  const obj = Object.create({
+    updateValue(name: string, value: any) {
+      return (obj[name] = value);
+    },
+  });
   const propMap = exportDefinitions.reduce(
     (map, definition) => ({ ...map, [definition.name]: definition }),
     Object.create(null) as ExportDefinitionMap
@@ -83,6 +123,9 @@ async function createProxy(id: string, exportDefinitions: ExportDefinition[]) {
             }
           };
         } else {
+          if (typeof target[prop] !== 'undefined') {
+            return target[prop];
+          }
           const returnValue = sendMessageSync('GET_MODULE_PROP', {
             prop,
             id,
@@ -91,16 +134,21 @@ async function createProxy(id: string, exportDefinitions: ExportDefinition[]) {
           switch (definition.returnType) {
             case ModuleExportType.stream:
               // if it's a prop, it gets memoized in the source object
-              return new InteropStream(returnValue);
+              return (target[prop] = new InteropStream(returnValue));
             default:
-              return returnValue;
+              return (target[prop] = returnValue);
           }
         }
       }
     },
     set(target, prop, value, _) {
       if (typeof prop === 'string' && typeof propMap[prop] !== 'undefined') {
-        throw 'Cannot set the value on a remote module property';
+        const didUpdate = sendMessageSync<boolean>('SET_MODULE_PROP', {
+          value,
+        });
+        if (!didUpdate) {
+          throw `Failed to update property ${prop}, check logs`;
+        }
       }
       return (target[prop] = value);
     },

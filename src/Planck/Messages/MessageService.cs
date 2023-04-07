@@ -1,5 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
-using Planck.Commands;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Planck.Utils;
 using System.Collections.Concurrent;
 using System.Reflection;
@@ -8,7 +8,7 @@ using System.Text.Json;
 
 namespace Planck.Messages
 {
-  internal class MessageService : IMessageService, IDisposable
+    internal class MessageService : IMessageService, IDisposable
   {
     [StructLayout(LayoutKind.Sequential)]
     struct MessageTimingTrace
@@ -19,7 +19,7 @@ namespace Planck.Messages
 
     readonly IServiceProvider _serviceProvider;
     readonly ILogger<MessageService> _logger;
-    readonly Dictionary<string, List<MethodInfo>> _messageTypeMap = new();
+    readonly Dictionary<string, MethodInfo> _messageTypeMap = new();
     readonly ConcurrentQueue<MessageTimingTrace> _timingTraceQueue = new();
     readonly Thread _traceThread;
     bool _isDisposed = false;
@@ -34,53 +34,38 @@ namespace Planck.Messages
         Priority = ThreadPriority.BelowNormal,
         Name = "MessageTraceThread",
       };
-    }
 
-    public MessageService AddHandlersFromType<T>()
-    {
-      var methods = typeof(T).GetMethods();
-      foreach (var method in methods)
+      var messageControllers = serviceProvider.GetServices<MessageController>();
+      foreach (var messageController in messageControllers)
       {
-        if (!method.IsPublic || !method.IsStatic)
+        var handlerMethods = messageController.GetType().GetMethods()
+          .Where(m => m.IsPublic && m.GetCustomAttribute<MessageHandlerAttribute>() is not null)
+          .Select(m => (m.GetCustomAttribute<MessageHandlerAttribute>()?.Name ?? m.Name, m));
+        foreach (var (name, method) in handlerMethods)
         {
-          continue;
-        }
-        var commandHandlerAttr = method.GetCustomAttribute<CommandHandlerAttribute>();
-        if (commandHandlerAttr is null)
-        {
-          continue;
-        }
-        if (!_messageTypeMap.ContainsKey(commandHandlerAttr.Name))
-        {
-          _messageTypeMap.Add(commandHandlerAttr.Name, new()
-          {
-            method,
-          });
-        }
-        else
-        {
-          _messageTypeMap[commandHandlerAttr.Name].Add(method);
+          _messageTypeMap.Add(name, method);
         }
       }
-      return this;
     }
 
-    public async Task<(int, IEnumerable<object?>)> HandleMessageAsync(JsonElement message)
+    public async Task<(int, object?)> HandleMessageAsync(JsonElement message)
     {
       if (!_traceThread.IsAlive)
       {
         _traceThread.Start();
       }
       var deserialized = message.Deserialize<PlanckMessage>();
-      var resultList = new List<object?>();
-      if (deserialized is not null && _messageTypeMap.TryGetValue(deserialized.Command, out var messageMethods))
+      object? resultToReturn = null;
+      if (deserialized is not null && _messageTypeMap.TryGetValue(deserialized.Command, out var method))
       {
         var now = DateTime.Now;
-        var body = deserialized.Body ?? new();
-        foreach (var method in messageMethods)
+        var body = deserialized?.Body ?? new();
+        using (var scope = _serviceProvider.CreateScope())
         {
+          var controllerInstance = _serviceProvider.GetService(method.DeclaringType!);
+          
           var methodArgs = InteropConverter.ConvertJsonToMethodArgs(body, method, _serviceProvider.GetService);
-          var result = method.Invoke(null, methodArgs);
+          var result = method.Invoke(controllerInstance, methodArgs);
           if (result is Task resultAsTask)
           {
             await resultAsTask;
@@ -88,12 +73,12 @@ namespace Planck.Messages
             var taskResult = resultProperty?.GetValue(resultAsTask);
             if (taskResult is not null)
             {
-              resultList.Add(taskResult);
+              resultToReturn = taskResult;
             }
           }
           else
           {
-            resultList.Add(result);
+            resultToReturn = result;
           }
         }
         _timingTraceQueue.Enqueue(new()
@@ -101,7 +86,7 @@ namespace Planck.Messages
           Name = deserialized.Command,
           TimeToExecuteMs = (DateTime.Now - now).TotalMilliseconds
         });
-        return (deserialized.OperationId, resultList);
+        return (deserialized.OperationId, resultToReturn);
       }
       throw new Exception("Failed to deserialize message");
     }

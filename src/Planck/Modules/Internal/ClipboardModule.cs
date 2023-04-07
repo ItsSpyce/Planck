@@ -4,7 +4,7 @@ namespace Planck.Modules.Internal
 {
   public class ClipboardModule : Module
   {
-    public ClipboardModule(IPlanckWindow planckWindow, IServiceProvider services) : base(planckWindow, services) { }
+    public ClipboardModule(IPlanckWindow planckWindow, IServiceProvider services) : base("clipboard", planckWindow, services) { }
 
     [ExportMethod("writeText")]
     public string WriteText(string text)

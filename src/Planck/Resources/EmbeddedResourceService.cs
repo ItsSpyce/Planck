@@ -15,7 +15,7 @@ namespace Planck.Resources
     readonly Assembly _assembly;
     string[] _availableResources; // might as well store it since it won't change
 
-    public EmbeddedResourceService(Assembly assembly, IOptions<PlanckConfiguration> config) : base(config)
+    public EmbeddedResourceService(Assembly assembly, PlanckConfiguration config) : base(config)
     {
       _assembly = assembly;
     }

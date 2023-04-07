@@ -24,11 +24,11 @@ namespace Planck.Controls.Wpf
       set => SetValue(SourceProperty, value);
     }
 
-    public PlanckSplashscreen(IOptions<PlanckConfiguration> configuration, Assembly assembly)
+    public PlanckSplashscreen(PlanckConfiguration configuration, Assembly assembly)
     {
       // TODO: add height and width restrictions, don't want to take up the entire screen
       InitializeComponent();
-      Source = configuration.Value.Splashscreen;
+      Source = configuration.Splashscreen;
       var bitmap = GetBitmapFromResources(assembly, Source);
       if (bitmap != null)
       {

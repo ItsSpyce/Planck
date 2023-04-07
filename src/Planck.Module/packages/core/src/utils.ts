@@ -1,11 +1,11 @@
-import type { PlanckMessage, PlanckResponse } from 'types.js';
+import type { PlanckMessage, PlanckResponse } from '@planck/types';
 
 export function postMessageAndWait<TResponse>(
   message: object,
   operationId: number,
-  until?: (response: Array<TResponse>) => boolean
+  until?: (response: TResponse) => boolean
 ) {
-  return new Promise<Array<TResponse>>((resolve) => {
+  return new Promise<TResponse>((resolve) => {
     function handler(args: MessageEventArgs<PlanckResponse<TResponse>>) {
       if (
         args.data.operationId === operationId &&
@@ -26,9 +26,9 @@ export function postMessageAndWait<TResponse>(
 export function postMessageAndWaitSync<TResponse>(
   message: object,
   operationId: number,
-  until?: (response: Array<TResponse>) => boolean
+  until?: (response: TResponse) => boolean
 ) {
-  let response: TResponse[] | null = null;
+  let response: TResponse | null = null;
   function handler(args: MessageEventArgs<PlanckResponse<TResponse>>) {
     if (
       args.data.operationId === operationId &&
@@ -46,7 +46,7 @@ export function postMessageAndWaitSync<TResponse>(
   while (response === null) {
     // do nothing
   }
-  return response as TResponse[];
+  return response as TResponse;
 }
 
 export function createOperationIdFactory() {
@@ -63,4 +63,19 @@ export function createOperationIdFactory() {
       return id;
     },
   };
+}
+
+export function waitFor(check: () => boolean, timeoutMs?: number) {
+  return new Promise((resolve, reject) => {
+    const interval = setInterval(() => {
+      if (check()) {
+        clearTimeout(timeout);
+        clearInterval(interval);
+        resolve(true);
+      }
+    }, 5);
+    const timeout = setTimeout(() => {
+      reject('Wait timed out');
+    }, timeoutMs || 1000);
+  });
 }

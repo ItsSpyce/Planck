@@ -11,10 +11,10 @@ namespace Planck
     readonly IServiceProvider _services;
     readonly PlanckConfiguration _configuration;
 
-    public PlanckSplashscreenService(IServiceProvider services, IOptions<PlanckConfiguration> options)
+    public PlanckSplashscreenService(IServiceProvider services, PlanckConfiguration configuration)
     {
       _services = services;
-      _configuration = options.Value;
+      _configuration = configuration;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)

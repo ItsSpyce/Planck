@@ -8,9 +8,9 @@ namespace Planck.HttpClients
   {
     private readonly PlanckConfiguration _configuration;
 
-    public PlanckHttpClient(IOptions<PlanckConfiguration> options) : base()
+    public PlanckHttpClient(PlanckConfiguration options) : base()
     {
-      _configuration = options.Value;
+      _configuration = options;
       if (!string.IsNullOrEmpty(_configuration.DevUrl))
       {
         BaseAddress = new Uri(_configuration.DevUrl);

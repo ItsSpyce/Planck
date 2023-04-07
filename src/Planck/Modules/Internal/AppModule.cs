@@ -25,7 +25,7 @@ namespace Planck.Modules.Internal
       }
     }
 
-    public AppModule(IPlanckWindow planckWindow, IServiceProvider services) : base(planckWindow, services) { }
+    public AppModule(IPlanckWindow planckWindow, IServiceProvider services) : base("app", planckWindow, services) { }
 
     [ExportMethod("hideWindow")]
     public void HideWindow()
