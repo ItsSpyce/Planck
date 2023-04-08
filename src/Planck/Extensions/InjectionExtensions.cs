@@ -76,8 +76,7 @@ namespace Planck.Extensions
           // Add IO stuff
           services
             .AddSingleton<IStreamPool, StreamPool>()
-            .AddTypeConverter<StreamPropTypeConverter>()
-            .AddTypeConverter<ModulePropertyTypeConverter>();
+            .AddTypeConverter<StreamTypeConverter>();
         });
 
 

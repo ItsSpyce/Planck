@@ -13,11 +13,6 @@ namespace Planck.Extensions
 {
   internal static class PlanckExtensions
   {
-    static readonly Newtonsoft.Json.JsonSerializer _jsonSerializer = new()
-    {
-
-    };
-
     public static void ConfigureCoreWebView2(this IPlanckWindow planckWindow)
     {
       planckWindow.CoreWebView2.Settings.IsStatusBarEnabled = false;

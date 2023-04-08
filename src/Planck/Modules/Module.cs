@@ -99,17 +99,16 @@ namespace Planck.Modules
       // not being used
       if (_moduleProperties.TryGetValue(prop, out var propInfo))
       {
-        var value = propInfo.GetValue(this);
+        var value = ModuleProperty.Watch(
+          () => propInfo.GetValue(this),
+          out var registeredProperty);
+
+        // register any updates to be sent through the window to notify the FE
+        registeredProperty?.Bind(this, Window);
+
         if (_typeConverters.TryGetValue(prop, out var getConverter))
         {
           var converter = getConverter();
-          if (propInfo.GetSetMethod() is not null && converter is ModulePropertyTypeConverter)
-          {
-            // having this here is a little scoped but we kind of have to for the sake
-            // of CPU cycles
-            var moduleProperty = (ModuleProperty)value;
-            moduleProperty!.Bind(this, Window);
-          }
           return converter.Convert(value);
         }
         return value;

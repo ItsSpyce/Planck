@@ -55,7 +55,7 @@ interface Planck {
    *
    * @param name Name of the module
    */
-  import<TModule>(name: string): Promise<TModule>;
+  import<TModule = any>(name: string): Promise<TModule>;
   /**
    * Sets the window title
    *

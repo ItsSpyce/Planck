@@ -20,9 +20,10 @@ window.chrome.webview.addEventListener<PlanckMessage<ModulePropChangedBody>>(
   (args) => {
     if (args.data?.command === 'MODULE_PROP_CHANGED') {
       const { Name, Value, Module } = args.data.body!;
+      console.debug('Received module prop updated', Name, Module);
       const savedModule = moduleMap[Module];
       if (typeof savedModule !== 'undefined') {
-        moduleMap.updateValue(Name, Value);
+        savedModule.updateValue(Name, Value);
       }
     }
   }

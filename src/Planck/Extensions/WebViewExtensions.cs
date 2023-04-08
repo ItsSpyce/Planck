@@ -56,6 +56,7 @@ namespace Planck.Extensions
     public static void PostWebMessage(this CoreWebView2 coreWebView2, string command, object? body)
     {
       var json = JObject.FromObject(new { command, body });
+      
       coreWebView2.PostWebMessageAsJson(json.ToString());
     }
 

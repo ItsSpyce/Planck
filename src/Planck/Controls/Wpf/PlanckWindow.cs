@@ -192,5 +192,13 @@ namespace Planck.Controls.Wpf
     {
       _splashscreen?.Close();
     }
+
+    public void PostWebMessage(string command, object? body)
+    {
+      Dispatcher.Invoke(() =>
+      {
+        CoreWebView2.PostWebMessage(command, body);
+      });
+    }
   }
 }

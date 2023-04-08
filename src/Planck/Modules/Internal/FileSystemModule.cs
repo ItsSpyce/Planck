@@ -16,20 +16,19 @@ namespace Planck.Modules.Internal
     public Stream ReadFile(string path) => File.OpenRead(path);
 
     [ExportMethod("openFolderDialog")]
-    public string? OpenFolderDialog(string root, string? filter = "")
+    public string? OpenFolderDialog(string root)
     {
       var dialog = new FolderBrowserDialog
       {
         InitialDirectory = root,
+        
       };
 
-      switch (dialog.ShowDialog())
+      return dialog.ShowDialog() switch
       {
-        case DialogResult.OK:
-          return dialog.SelectedPath;
-        default:
-          return null;
-      }
+        DialogResult.OK => dialog.SelectedPath,
+        _ => null,
+      };
     }
 
     [ExportMethod("openFileDialog")]
@@ -40,14 +39,11 @@ namespace Planck.Modules.Internal
         Filter = filter,
         InitialDirectory = root,
       };
-      switch (dialog.ShowDialog())
+      return dialog.ShowDialog() switch
       {
-        case DialogResult.OK:
-        case DialogResult.Yes:
-          return dialog.FileName;
-        default:
-          return null;
-      }
+        DialogResult.OK or DialogResult.Yes => dialog.FileName,
+        _ => null,
+      };
     }
   }
 }

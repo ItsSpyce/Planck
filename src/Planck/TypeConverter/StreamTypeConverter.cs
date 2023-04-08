@@ -3,11 +3,11 @@ using System.IO;
 
 namespace Planck.TypeConverter
 {
-  public sealed class StreamPropTypeConverter : IPropTypeConverter
+  public sealed class StreamTypeConverter : IPropTypeConverter
   {
     readonly IStreamPool _streamPool;
 
-    public StreamPropTypeConverter(IStreamPool streamPool)
+    public StreamTypeConverter(IStreamPool streamPool)
     {
       _streamPool = streamPool;
     }

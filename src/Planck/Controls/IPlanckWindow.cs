@@ -28,5 +28,7 @@ namespace Planck.Controls
 
     void ShowSplashscreen();
     void CloseSplashscreen();
+
+    void PostWebMessage(string command, object? body);
   }
 }

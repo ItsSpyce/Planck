@@ -74,5 +74,10 @@ namespace Planck.Controls.WinForms
     {
       throw new NotImplementedException();
     }
+
+    public void PostWebMessage(string command, object? body)
+    {
+      throw new NotImplementedException();
+    }
   }
 }
