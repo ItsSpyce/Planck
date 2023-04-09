@@ -10,11 +10,8 @@ namespace Planck.IO
       public StreamLedger StreamLedger { get; }
       public WeakReference<Stream> StreamRef { get; }
 
-      public LedgerWithReference(StreamLedger streamLedger, Stream stream)
-      {
-        StreamLedger = streamLedger;
-        StreamRef = new(stream);
-      }
+      public LedgerWithReference(StreamLedger streamLedger, Stream stream) =>
+        (StreamLedger, StreamRef) = (streamLedger, new(stream));
     }
 
     const int CHUNK_LENGTH = 1024;

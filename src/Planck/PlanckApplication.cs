@@ -2,14 +2,13 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Planck.Configuration;
-using Planck.Controls;
 using Planck.Extensions;
 using Planck.Resources;
 using Planck.Utilities;
 
 namespace Planck
 {
-  public static class PlanckApplication
+    public static class PlanckApplication
   {
     public static IHostBuilder CreateHost(PlanckConfiguration configuration) =>
 #if DEBUG

@@ -1,10 +1,12 @@
-﻿using Planck.Controls;
+﻿using System.ComponentModel;
 using System.IO;
+using System.Windows;
 
 namespace Planck.Modules.Internal
 {
-  public class FileSystemModule : Module
+    public class FileSystemModule : Module
   {
+
     public FileSystemModule(IPlanckWindow planck, IServiceProvider services) : base("fs", planck, services)
     {
     }

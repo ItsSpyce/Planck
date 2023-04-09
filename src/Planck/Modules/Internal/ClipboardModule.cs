@@ -1,8 +1,6 @@
-﻿using Planck.Controls;
-
-namespace Planck.Modules.Internal
+﻿namespace Planck.Modules.Internal
 {
-  public class ClipboardModule : Module
+    public class ClipboardModule : Module
   {
     public ClipboardModule(IPlanckWindow planckWindow, IServiceProvider services) : base("clipboard", planckWindow, services) { }
 

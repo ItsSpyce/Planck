@@ -1,8 +1,6 @@
-﻿using Planck.Controls;
-
-namespace Planck.Modules.Internal
+﻿namespace Planck.Modules.Internal
 {
-  public class AppModule : Module
+    public class AppModule : Module
   {
     [ExportProperty("windowState")]
     public string WindowState

@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
 using Planck.Configuration;
-using Planck.Controls;
 using Planck.Extensions;
 using Planck.Utilities;
 using System.IO;
@@ -10,7 +9,7 @@ using System.Reflection;
 namespace Planck.Resources
 {
 
-  internal class EmbeddedResourceService : InternalResourceService
+    internal class EmbeddedResourceService : InternalResourceService
   {
     readonly Assembly _assembly;
     string[] _availableResources; // might as well store it since it won't change

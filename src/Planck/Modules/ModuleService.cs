@@ -32,10 +32,7 @@ namespace Planck.Modules
     ///   Initializes the service with the provided <see cref="IServiceProvider"/>
     /// </summary>
     /// <param name="serviceProvider"></param>
-    public ModuleService(IServiceProvider serviceProvider)
-    {
-      _serviceProvider = serviceProvider;
-    }
+    public ModuleService(IServiceProvider serviceProvider) => _serviceProvider = serviceProvider;
 
     public object GetModule<T>() where T : Module
     {

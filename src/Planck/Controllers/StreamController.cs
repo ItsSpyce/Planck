@@ -7,10 +7,7 @@ namespace Planck.Controllers
   {
     readonly IStreamPool _streamPool;
 
-    public StreamController(IStreamPool streamPool)
-    {
-      _streamPool = streamPool;
-    }
+    public StreamController(IStreamPool streamPool) => _streamPool = streamPool;
 
     [MessageHandler("CLOSE_STREAM")]
     public void CloseStream(Guid id) =>

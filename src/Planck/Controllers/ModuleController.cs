@@ -8,10 +8,7 @@ namespace Planck.Controllers
   {
     readonly IModuleService _moduleService;
 
-    public ModuleController(IModuleService moduleService)
-    {
-      _moduleService = moduleService;
-    }
+    public ModuleController(IModuleService moduleService) => _moduleService = moduleService;
 
     [MessageHandler("LOAD_MODULE")]
     public object LoadModule(string id)

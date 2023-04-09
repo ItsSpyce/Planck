@@ -2,7 +2,7 @@
 
 namespace Planck.Controls.WinForms
 {
-  internal class PlanckWindow : Form, IPlanckWindow
+    internal class PlanckWindow : Form, IPlanckWindow
   {
     public CoreWebView2 CoreWebView2 => throw new NotImplementedException();
     public event EventHandler BootstrapCompleted;
@@ -76,6 +76,11 @@ namespace Planck.Controls.WinForms
     }
 
     public void PostWebMessage(string command, object? body)
+    {
+      throw new NotImplementedException();
+    }
+
+    public void PostWebMessage(int operationId, object? body)
     {
       throw new NotImplementedException();
     }

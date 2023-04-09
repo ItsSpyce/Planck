@@ -1,5 +1,4 @@
-﻿using Planck.Controls;
-using Planck.Extensions;
+﻿using Planck.Extensions;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -11,9 +10,9 @@ using System.Threading.Tasks;
 
 namespace Planck.Modules
 {
-  // I know this class seems funny but it's all for the sake of being alerted of
-  // value changes without using proxy objects
-  public class ModuleProperty : INotifyPropertyChanged
+    // I know this class seems funny but it's all for the sake of being alerted of
+    // value changes without using proxy objects
+    public class ModuleProperty : INotifyPropertyChanged
   {
     class PropertyGetEventArgs : EventArgs
     {

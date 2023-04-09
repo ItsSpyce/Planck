@@ -1,11 +1,10 @@
 ﻿using Microsoft.Extensions.Options;
 using Planck.Configuration;
-using Planck.Controls;
 using System.IO;
 
 namespace Planck.Resources
 {
-  internal class LocalResourceService : InternalResourceService
+    internal class LocalResourceService : InternalResourceService
   {
     public LocalResourceService(PlanckConfiguration options) : base(options)
     {

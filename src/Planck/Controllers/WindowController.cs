@@ -1,19 +1,15 @@
-﻿using Planck.Controls;
-using Planck.Messages;
+﻿using Planck.Messages;
 using System.Windows;
 
 namespace Planck.Controllers
 {
-  public class WindowController : MessageController
+    public class WindowController : MessageController
   {
     readonly IPlanckWindow _window;
     readonly IPlanckSplashscreen _splashscreen;
 
-    public WindowController(IPlanckWindow window, IPlanckSplashscreen splashscreen)
-    {
-      _window = window;
-      _splashscreen = splashscreen;
-    }
+    public WindowController(IPlanckWindow window, IPlanckSplashscreen splashscreen) =>
+      (_window, _splashscreen) = (window, splashscreen);
 
     [MessageHandler("SET_WINDOW_TITLE")]
     public void HandleSetWindowTitle(string title)

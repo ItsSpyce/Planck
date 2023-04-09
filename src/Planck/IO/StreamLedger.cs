@@ -14,11 +14,7 @@ namespace Planck.IO
     [JsonProperty("length")]
     public long Length { get; set; }
 
-    public StreamLedger(Guid id, int position, long length)
-    {
-      Id = id;
-      Position = position;
-      Length = length;
-    }
+    public StreamLedger(Guid id, int position, long length) =>
+      (Id, Position, Length) = (id, position, length);
   }
 }

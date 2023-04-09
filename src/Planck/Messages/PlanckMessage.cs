@@ -11,7 +11,7 @@ namespace Planck.Messages
     JsonElement? Body { get; }
   }
 
-  internal class PlanckMessage : IPlanckMessage
+  public class PlanckMessage : IPlanckMessage
   {
     [JsonPropertyName("command")]
     public string Command { get; set; }
@@ -21,5 +21,14 @@ namespace Planck.Messages
 
     [JsonPropertyName("body")]
     public JsonElement? Body { get; set; }
+  }
+
+  public class MessageWorkResponse
+  {
+    public readonly int OperationId;
+    public readonly object? Body;
+
+    public MessageWorkResponse(int operationId, object? body) =>
+      (OperationId, Body) = (operationId, body);
   }
 }

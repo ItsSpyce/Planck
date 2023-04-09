@@ -9,6 +9,7 @@ using Planck.Extensions;
 using Planck.Messages;
 using Planck.Modules;
 using Planck.Resources;
+using Planck.Services;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -18,9 +19,6 @@ namespace Planck.Controls.Wpf
 {
   internal class PlanckWindow : Window, IPlanckWindow
   {
-    private static readonly Regex _commandRequestRegex = new(@"^([A-Za-z0-9\._]+)__request__([0-9]+)$");
-    private static readonly Regex _commandResponseRegex = new(@"^([A-Za-z0-9\._]+)__response__([0-9]+)$");
-
     #region Properties
     public static readonly DependencyProperty SslOnlyProperty = DependencyProperty.Register(
       "SslOnly",
@@ -198,6 +196,14 @@ namespace Planck.Controls.Wpf
       Dispatcher.Invoke(() =>
       {
         CoreWebView2.PostWebMessage(command, body);
+      });
+    }
+
+    public void PostWebMessage(int operationId, object? body)
+    {
+      Dispatcher.Invoke(() =>
+      {
+        CoreWebView2.PostWebMessage(operationId, body);
       });
     }
   }

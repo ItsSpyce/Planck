@@ -1,11 +1,10 @@
 ﻿using Microsoft.Extensions.Options;
 using Planck.Configuration;
-using Planck.Controls;
 using System.IO;
 
 namespace Planck.Resources
 {
-  public interface IResourceService
+    public interface IResourceService
   {
     public const string AppUrl = "http://app.planck/";
 

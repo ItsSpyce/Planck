@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Planck.Configuration;
 using Planck.Controllers;
-using Planck.Controls;
 using Planck.HttpClients;
 using Planck.IO;
 using Planck.MacroConfig.Extensions;
@@ -11,13 +10,14 @@ using Planck.Messages;
 using Planck.Modules;
 using Planck.Modules.Internal;
 using Planck.Resources;
+using Planck.Services;
 using Planck.TypeConverter;
 using System.IO;
 using System.Reflection;
 
 namespace Planck.Extensions
 {
-  public static class InjectionExtensions
+    public static class InjectionExtensions
   {
     public static IHostBuilder UsePlanck(this IHostBuilder host, ResourceMode resourceMode, PlanckConfiguration configuration) =>
       host
@@ -26,6 +26,7 @@ namespace Planck.Extensions
         {
           var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
           services.AddHostedService<PlanckSplashscreenService>();
+          services.AddHostedService<BackgroundMessageService>();
 
           // for reference in the components
           services.AddSingleton(assembly);
@@ -53,7 +54,8 @@ namespace Planck.Extensions
           // Core services
           services
             .AddSingleton<IModuleService, ModuleService>()
-            .AddSingleton<IMessageService, MessageService>();
+            .AddSingleton<IMessageService, MessageService>()
+            .AddSingleton<IBackgroundTaskQueue<MessageWorkResponse>, MessageQueue>();
 
           // add PlanckConfiguration
           services

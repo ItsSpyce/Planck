@@ -8,10 +8,10 @@ using Image = System.Windows.Controls.Image;
 
 namespace Planck.Controls.Wpf
 {
-  /// <summary>
-  /// Interaction logic for PlanckSplashScreen.xaml
-  /// </summary>
-  public partial class PlanckSplashscreen : Window, IPlanckSplashscreen
+    /// <summary>
+    /// Interaction logic for PlanckSplashScreen.xaml
+    /// </summary>
+    public partial class PlanckSplashscreen : Window, IPlanckSplashscreen
   {
     public static readonly DependencyProperty SourceProperty = DependencyProperty.Register(
       "Source",

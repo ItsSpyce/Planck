@@ -1,11 +1,8 @@
 ﻿using Microsoft.Web.WebView2.Core;
-using Newtonsoft.Json.Linq;
 using Planck.Configuration;
-using Planck.Controls;
 using Planck.Messages;
 using Planck.Modules;
 using Planck.Resources;
-using System.IO;
 using System.Text;
 using System.Text.Json;
 
@@ -13,6 +10,7 @@ namespace Planck.Extensions
 {
   internal static class PlanckExtensions
   {
+
     public static void ConfigureCoreWebView2(this IPlanckWindow planckWindow)
     {
       planckWindow.CoreWebView2.Settings.IsStatusBarEnabled = false;
@@ -21,20 +19,18 @@ namespace Planck.Extensions
 #else
       planckWindow.CoreWebView2.Settings.AreDevToolsEnabled = false;
 #endif
-
     }
 
-    public static void ConfigureMessages(this IPlanckWindow planckWindow, IMessageService commandHandler)
+    public static void ConfigureMessages(
+      this IPlanckWindow planckWindow,
+      IMessageService commandHandler)
     {
       planckWindow.CoreWebView2.WebMessageReceived += (_, args) =>
       {
         var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(args.WebMessageAsJson));
-        if (JsonElement.TryParseValue(ref reader, out var asJson) && asJson != null)
+        if (JsonElement.TryParseValue(ref reader, out var asJson) && asJson is not null)
         {
-          var (operationId, body) = commandHandler.HandleMessageAsync((JsonElement)asJson).Result;
-          var message = JObject.FromObject(new { body, operationId });
-          
-          planckWindow.CoreWebView2.PostWebMessageAsJson(message.ToString());
+          commandHandler.HandleMessage((JsonElement)asJson);
         }
       };
     }
@@ -68,7 +64,6 @@ namespace Planck.Extensions
             break;
         }
       };
-
     }
   }
 }

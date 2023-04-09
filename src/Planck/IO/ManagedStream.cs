@@ -16,10 +16,7 @@ namespace Planck.IO
 
     private readonly Stream _stream;
 
-    public ManagedStream(Stream stream)
-    {
-      _stream = stream;
-    }
+    public ManagedStream(Stream stream) => _stream = stream;
 
     public override void Flush() => _stream.Flush();
 
