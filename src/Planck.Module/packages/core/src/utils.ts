@@ -1,23 +1,29 @@
-import type { PlanckMessage, PlanckResponse } from '@planck/types';
+import type { PlanckResponse } from '@planck/types';
 
 export function postMessageAndWait<TResponse>(
   message: object,
   operationId: number,
   until?: (response: TResponse) => boolean
 ) {
-  return new Promise<TResponse>((resolve) => {
+  return new Promise<TResponse>((resolve, reject) => {
     function handler(args: MessageEventArgs<PlanckResponse<TResponse>>) {
       if (
         args.data.operationId === operationId &&
         (typeof until === 'undefined' || until(args.data.body))
       ) {
-        resolve(args.data.body);
-        console.debug('Received webmessage', operationId, args.data);
+        const totalTime = new Date().getTime() - start.getTime();
+        console.debug('Received webmessage', operationId, args.data, totalTime);
         window.chrome.webview.removeEventListener('message', handler);
+        if (args.data.error) {
+          reject(args.data.error);
+        } else {
+          resolve(args.data.body);
+        }
       }
     }
 
     window.chrome.webview.addEventListener('message', handler);
+    const start = new Date();
     window.chrome.webview.postMessage({ ...message, operationId });
     console.debug('Posted webmessage', operationId, message);
   });
@@ -34,13 +40,18 @@ export function postMessageAndWaitSync<TResponse>(
       args.data.operationId === operationId &&
       (typeof until === 'undefined' || until(args.data.body))
     ) {
-      response = args.data.body;
-      console.debug('Received webmessage', operationId, args.data);
+      const totalTime = new Date().getTime() - start.getTime();
+      console.debug('Received webmessage', operationId, args.data, totalTime);
       window.chrome.webview.removeEventListener('message', handler);
+      if (args.data.error) {
+        throw args.data.error;
+      }
+      response = args.data.body;
     }
   }
 
   window.chrome.webview.addEventListener('message', handler);
+  const start = new Date();
   window.chrome.webview.postMessage({ ...message, operationId });
   console.debug('Posted sync webmessage', operationId, message);
   while (response === null) {

@@ -40,35 +40,50 @@ namespace Planck.Messages
     public async void HandleMessage(JsonElement message)
     {
       var deserialized = message.Deserialize<PlanckMessage>();
-      if (deserialized is not null && _messageTypeMap.TryGetValue(deserialized.Command, out var method))
+      if (deserialized is not null)
       {
         await _messageQueue.QueueBackgroundWorkItemAsync(async (cancelToken) =>
         {
-          object? resultToReturn = null;
-          var now = DateTime.Now;
-          var body = deserialized?.Body ?? new();
-          using (var scope = _serviceProvider.CreateScope())
+          MessageWorkResponse response;
+          if (_messageTypeMap.TryGetValue(deserialized.Command, out var method))
           {
-            var controllerInstance = _serviceProvider.GetService(method.DeclaringType!);
-
-            var methodArgs = InteropConverter.ConvertJsonToMethodArgs(body, method, _serviceProvider.GetService);
-            var result = method.Invoke(controllerInstance, methodArgs);
-            if (result is Task resultAsTask)
+            try
             {
-              await resultAsTask;
-              var resultProperty = resultAsTask.GetType().GetProperty("Result");
-              var taskResult = resultProperty?.GetValue(resultAsTask);
-              if (taskResult is not null)
+              var body = deserialized?.Body ?? new();
+              using var scope = _serviceProvider.CreateScope();
+              var controllerInstance = _serviceProvider.GetService(method.DeclaringType!);
+
+              var methodArgs = InteropConverter.ConvertJsonToMethodArgs(body, method, _serviceProvider.GetService);
+              var result = method.Invoke(controllerInstance, methodArgs);
+              if (result is Task resultAsTask)
               {
-                resultToReturn = taskResult;
+                await resultAsTask;
+                var resultProperty = resultAsTask.GetType().GetProperty("Result");
+                var taskResult = resultProperty?.GetValue(resultAsTask);
+                if (taskResult is not null)
+                {
+                  response = new(deserialized!.OperationId, taskResult);
+                }
+                else
+                {
+                  response = new(deserialized!.OperationId);
+                }
+              }
+              else
+              {
+                response = new(deserialized!.OperationId, result);
               }
             }
-            else
+            catch (Exception ex)
             {
-              resultToReturn = result;
+              response = new(deserialized.OperationId, error: ex.Message);
             }
           }
-          return new(deserialized!.OperationId, resultToReturn);
+          else
+          {
+            response = new(deserialized.OperationId, error: "Command not found");
+          }
+          return response;
         });
       }
     }

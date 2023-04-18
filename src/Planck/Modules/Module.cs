@@ -22,6 +22,8 @@ namespace Planck.Modules
     {
       [JsonProperty("name")]
       public string Name;
+      [JsonProperty("isMethod")]
+      public bool IsMethod;
       [JsonProperty("returnType")]
       public string ReturnType;
       [JsonProperty("hasGetter")]
@@ -77,14 +79,16 @@ namespace Planck.Modules
       var publicMethods = _moduleMethods.Select(kvp => new ExportDefinition
       {
         Name = kvp.Key,
-        ReturnType = GetExportReturnType(kvp.Value.ReturnType, true),
+        ReturnType = GetExportReturnType(kvp.Value.ReturnType),
+        IsMethod = true,
         HasGetter = true,
         HasSetter = false,
       });
       var publicProperties = _moduleProperties.Select(kvp => new ExportDefinition
       {
         Name = kvp.Key,
-        ReturnType = GetExportReturnType(kvp.Value.PropertyType, false),
+        ReturnType = GetExportReturnType(kvp.Value.PropertyType),
+        IsMethod = false,
         HasGetter = kvp.Value.GetGetMethod() is not null,
         HasSetter = kvp.Value.GetSetMethod() is not null,
       });
@@ -168,7 +172,7 @@ namespace Planck.Modules
       return null;
     }
 
-    static string GetExportReturnType(Type type, bool isMethod)
+    static string GetExportReturnType(Type type)
     {
       var typeResult = "void";
       if (type == typeof(string) || type == typeof(char))
@@ -210,7 +214,7 @@ namespace Planck.Modules
         typeResult = "object";
       }
 
-      return isMethod ? $"fn:{typeResult}" : typeResult;
+      return typeResult;
     }
   }
 }

@@ -25,4 +25,5 @@ export interface PlanckMessage<T = unknown> {
 export interface PlanckResponse<T = unknown> {
   operationId: number;
   body: T;
+  error?: string;
 }

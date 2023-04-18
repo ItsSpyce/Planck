@@ -49,7 +49,7 @@ interface Planck {
    * @param command The command name
    * @param body The JSON argument of argument names and variables
    */
-  sendMessage<TResponse>(command: string, body?: any): Promise<TResponse>;
+  sendMessage<TResponse = any>(command: string, body?: any): Promise<TResponse>;
   /**
    * Imports a remote module exposed by Planck
    *

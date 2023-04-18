@@ -4,7 +4,7 @@ using System.Windows;
 
 namespace Planck.Modules.Internal
 {
-    public class FileSystemModule : Module
+  public class FileSystemModule : Module
   {
 
     public FileSystemModule(IPlanckWindow planck, IServiceProvider services) : base("fs", planck, services)

@@ -27,6 +27,13 @@ namespace Planck.Messages
   {
     public readonly int OperationId;
     public readonly object? Body;
+    public readonly string? Error;
+
+    public MessageWorkResponse(int operationId) =>
+      OperationId = operationId;
+
+    public MessageWorkResponse(int operationId, string error) =>
+      (OperationId, Error) = (operationId, error);
 
     public MessageWorkResponse(int operationId, object? body) =>
       (OperationId, Body) = (operationId, body);

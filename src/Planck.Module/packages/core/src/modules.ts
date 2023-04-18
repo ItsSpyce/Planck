@@ -65,18 +65,20 @@ enum ModuleExportType {
   stream = 'stream',
   array = 'array',
   void = 'void',
-  fn_string = 'fn:string',
-  fn_boolean = 'fn:boolean',
-  fn_number = 'fn:number',
-  fn_object = 'fn:object',
-  fn_stream = 'fn:stream',
-  fn_array = 'fn:array',
-  fn_void = 'fn:void',
 }
+
+interface ModuleTypeMapper {
+  (input: any): any;
+}
+
+const moduleTypeMappers: Partial<Record<ModuleExportType, ModuleTypeMapper>> = {
+  [ModuleExportType.stream]: (input) => new InteropStream(input),
+};
 
 type ExportDefinition = {
   name: string;
   returnType: ModuleExportType;
+  isMethod: boolean;
   hasGetter: boolean;
   hasSetter: boolean;
 };
@@ -108,39 +110,37 @@ async function createProxy(id: string, exportDefinitions: ExportDefinition[]) {
       if (typeof definition === 'undefined') {
         return undefined;
       }
-      if (definition.hasGetter) {
-        if (definition.returnType.startsWith(MODULE_FN_IDENTIFIER)) {
-          return async function (...args: any[]) {
-            const result = await sendMessage('INVOKE_MODULE_METHOD', {
-              id,
-              method: prop,
-              args,
-            });
-            switch (definition.returnType) {
-              case ModuleExportType.fn_stream:
-                return new InteropStream(result);
-              default:
-                return result;
-            }
-          };
-        } else {
-          if (typeof target[prop] !== 'undefined') {
-            return target[prop];
-          }
-          const returnValue = sendMessageSync('GET_MODULE_PROP', {
-            prop,
+      // handle methods
+      if (definition.isMethod) {
+        return async function (...args: any[]) {
+          const result = await sendMessage('INVOKE_MODULE_METHOD', {
             id,
-            args: {},
+            method: prop,
+            args,
           });
-          switch (definition.returnType) {
-            case ModuleExportType.stream:
-              // if it's a prop, it gets memoized in the source object
-              return (target[prop] = new InteropStream(returnValue));
-            default:
-              return (target[prop] = returnValue);
+          if (typeof moduleTypeMappers[definition.returnType] !== 'undefined') {
+            return moduleTypeMappers[definition.returnType]!(result);
           }
-        }
+          return result;
+        };
       }
+      if (typeof target[prop] !== 'undefined') {
+        return target[prop];
+      }
+      // now we do properties
+      if (definition.hasGetter) {
+        let returnValue = sendMessageSync('GET_MODULE_PROP', {
+          prop,
+          id,
+          args: {},
+        });
+        if (typeof moduleTypeMappers[definition.returnType] !== 'undefined') {
+          returnValue = moduleTypeMappers[definition.returnType]!(returnValue);
+        }
+        return (target[prop] = returnValue);
+      }
+
+      throw 'Export does not have a public getter';
     },
     set(target, prop, value, _) {
       if (typeof prop === 'string' && typeof propMap[prop] !== 'undefined') {

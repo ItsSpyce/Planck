@@ -23,6 +23,7 @@ namespace Planck.Messages
 
     public async ValueTask<Func<CancellationToken, ValueTask<MessageWorkResponse>>> DequeueAsync(CancellationToken cancellationToken)
     {
+      await _queue.Reader.WaitToReadAsync(cancellationToken);
       var workItem = await _queue.Reader.ReadAsync(cancellationToken);
       return workItem;
     }
